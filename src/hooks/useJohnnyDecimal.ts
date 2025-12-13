@@ -1,11 +1,45 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import type { JohnnyDecimalSystem, Area, Category } from '@/types/johnnyDecimal';
 
+const STORAGE_KEY = 'johnny-decimal-systems';
+const ACTIVE_INDEX_KEY = 'johnny-decimal-active-index';
+
+function loadFromStorage(): { systems: JohnnyDecimalSystem[]; activeIndex: number } {
+  try {
+    const systemsData = localStorage.getItem(STORAGE_KEY);
+    const activeIndexData = localStorage.getItem(ACTIVE_INDEX_KEY);
+    return {
+      systems: systemsData ? JSON.parse(systemsData) : [],
+      activeIndex: activeIndexData ? parseInt(activeIndexData, 10) : 0
+    };
+  } catch {
+    return { systems: [], activeIndex: 0 };
+  }
+}
+
 export function useJohnnyDecimal() {
-  const [systems, setSystems] = useState<JohnnyDecimalSystem[]>([]);
-  const [activeSystemIndex, setActiveSystemIndex] = useState(0);
+  const [systems, setSystems] = useState<JohnnyDecimalSystem[]>(() => loadFromStorage().systems);
+  const [activeSystemIndex, setActiveSystemIndex] = useState(() => loadFromStorage().activeIndex);
 
   const activeSystem = systems[activeSystemIndex] || null;
+
+  // Persist systems to localStorage whenever they change
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(systems));
+    } catch (e) {
+      console.warn('Failed to save systems to localStorage:', e);
+    }
+  }, [systems]);
+
+  // Persist active index to localStorage whenever it changes
+  useEffect(() => {
+    try {
+      localStorage.setItem(ACTIVE_INDEX_KEY, String(activeSystemIndex));
+    } catch (e) {
+      console.warn('Failed to save active index to localStorage:', e);
+    }
+  }, [activeSystemIndex]);
 
   const loadSystem = useCallback((system: JohnnyDecimalSystem) => {
     setSystems(prev => {
