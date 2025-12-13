@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { ChevronRight, Folder, FileText } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { TagInput } from '@/components/TagInput';
@@ -6,6 +6,8 @@ import type { SearchResult, Area, Category } from '@/types/johnnyDecimal';
 
 interface SearchResultsProps {
   results: SearchResult[];
+  focusIndex: number;
+  onFocusChange: (index: number) => void;
   onUpdateArea: (areaId: string, updates: Partial<Pick<Area, 'description' | 'tags'>>) => void;
   onUpdateCategory: (areaId: string, categoryId: string, updates: Partial<Pick<Category, 'description' | 'tags'>>) => void;
 }
@@ -13,13 +15,15 @@ interface SearchResultsProps {
 function HighlightText({ text, terms }: { text: string; terms: string[] }) {
   if (terms.length === 0) return <>{text}</>;
   
-  const regex = new RegExp(`(${terms.join('|')})`, 'gi');
+  // Escape special regex characters and match substrings
+  const escapedTerms = terms.map(t => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+  const regex = new RegExp(`(${escapedTerms.join('|')})`, 'gi');
   const parts = text.split(regex);
   
   return (
     <>
       {parts.map((part, i) => 
-        terms.some(t => t.toLowerCase() === part.toLowerCase()) 
+        terms.some(t => part.toLowerCase().includes(t.toLowerCase())) 
           ? <mark key={i} className="bg-primary/20 text-foreground rounded px-0.5">{part}</mark>
           : part
       )}
@@ -27,25 +31,58 @@ function HighlightText({ text, terms }: { text: string; terms: string[] }) {
   );
 }
 
-export function SearchResults({ results, onUpdateArea, onUpdateCategory }: SearchResultsProps) {
+export function SearchResults({ results, focusIndex, onFocusChange, onUpdateArea, onUpdateCategory }: SearchResultsProps) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const itemRefs = useRef<(HTMLButtonElement | null)[]>([]);
+
+  // Scroll focused item into view
+  useEffect(() => {
+    if (focusIndex >= 0 && itemRefs.current[focusIndex]) {
+      itemRefs.current[focusIndex]?.scrollIntoView({ block: 'nearest' });
+    }
+  }, [focusIndex]);
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      onFocusChange(Math.min(focusIndex + 1, results.length - 1));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      onFocusChange(Math.max(focusIndex - 1, 0));
+    } else if (e.key === 'Enter' && focusIndex >= 0) {
+      e.preventDefault();
+      const result = results[focusIndex];
+      const id = result.type === 'area' 
+        ? `area-${result.area.id}` 
+        : `cat-${result.area.id}-${result.category!.id}`;
+      setExpandedId(expandedId === id ? null : id);
+    }
+  }, [focusIndex, results, onFocusChange, expandedId]);
 
   if (results.length === 0) return null;
 
   return (
-    <div className="space-y-2">
+    <div 
+      ref={containerRef}
+      className="space-y-2 outline-none" 
+      tabIndex={0}
+      onKeyDown={handleKeyDown}
+    >
       {results.map((result, idx) => {
         const id = result.type === 'area' 
           ? `area-${result.area.id}` 
           : `cat-${result.area.id}-${result.category!.id}`;
         const isExpanded = expandedId === id;
+        const isFocused = focusIndex === idx;
 
         return (
           <div
             key={id}
-            className="border rounded-lg overflow-hidden bg-card"
+            className={`border rounded-lg overflow-hidden bg-card transition-colors ${isFocused ? 'ring-2 ring-primary' : ''}`}
           >
             <button
+              ref={el => itemRefs.current[idx] = el}
               onClick={() => setExpandedId(isExpanded ? null : id)}
               className="w-full px-4 py-3 flex items-center gap-3 text-left hover:bg-muted/50 transition-colors"
             >
