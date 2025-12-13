@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, useCallback } from 'react';
 import { Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { FileImport } from '@/components/FileImport';
@@ -11,6 +11,9 @@ import { searchSystem } from '@/lib/bm25';
 
 const Index = () => {
   const [query, setQuery] = useState('');
+  const [focusIndex, setFocusIndex] = useState(-1);
+  const resultsRef = useRef<HTMLDivElement>(null);
+  
   const {
     systems,
     activeSystem,
@@ -26,6 +29,20 @@ const Index = () => {
     if (!activeSystem || !query.trim()) return [];
     return searchSystem(activeSystem, query);
   }, [activeSystem, query]);
+
+  // Reset focus when results change
+  const handleQueryChange = useCallback((newQuery: string) => {
+    setQuery(newQuery);
+    setFocusIndex(-1);
+  }, []);
+
+  const handleArrowDown = useCallback(() => {
+    if (results.length > 0) {
+      setFocusIndex(0);
+      // Focus the results container
+      resultsRef.current?.focus();
+    }
+  }, [results.length]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -73,7 +90,11 @@ const Index = () => {
               </div>
             </div>
 
-            <SearchInput value={query} onChange={setQuery} />
+            <SearchInput 
+              value={query} 
+              onChange={handleQueryChange}
+              onArrowDown={handleArrowDown}
+            />
 
             {query.trim() ? (
               results.length === 0 ? (
@@ -81,11 +102,15 @@ const Index = () => {
                   No matches found. Try different terms or add tags to your categories.
                 </p>
               ) : (
-                <SearchResults
-                  results={results}
-                  onUpdateArea={updateArea}
-                  onUpdateCategory={updateCategory}
-                />
+                <div ref={resultsRef} tabIndex={-1} className="outline-none">
+                  <SearchResults
+                    results={results}
+                    focusIndex={focusIndex}
+                    onFocusChange={setFocusIndex}
+                    onUpdateArea={updateArea}
+                    onUpdateCategory={updateCategory}
+                  />
+                </div>
               )
             ) : (
               <SystemTree
