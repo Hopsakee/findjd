@@ -9,26 +9,39 @@ function tokenize(text: string): string[] {
 
 function getDocumentText(area: Area, category?: Category): string {
   if (category) {
-    return `${category.name} ${category.description} ${category.tags.join(' ')} ${area.name}`;
+    return `${category.name} ${category.description} ${category.tags.join(' ')} ${area.name} ${area.description} ${area.tags.join(' ')}`;
   }
   return `${area.name} ${area.description} ${area.tags.join(' ')}`;
 }
 
-function buildCorpus(system: JohnnyDecimalSystem): { docs: string[]; results: SearchResult[] } {
-  const docs: string[] = [];
-  const results: SearchResult[] = [];
+interface DocEntry {
+  type: 'area' | 'category';
+  areaId: string;
+  categoryId?: string;
+  text: string;
+}
+
+function buildCorpus(system: JohnnyDecimalSystem): DocEntry[] {
+  const entries: DocEntry[] = [];
 
   for (const area of system.areas) {
-    docs.push(getDocumentText(area));
-    results.push({ type: 'area', area, score: 0, matchedTerms: [] });
+    entries.push({
+      type: 'area',
+      areaId: area.id,
+      text: getDocumentText(area)
+    });
 
     for (const category of area.categories) {
-      docs.push(getDocumentText(area, category));
-      results.push({ type: 'category', area, category, score: 0, matchedTerms: [] });
+      entries.push({
+        type: 'category',
+        areaId: area.id,
+        categoryId: category.id,
+        text: getDocumentText(area, category)
+      });
     }
   }
 
-  return { docs, results };
+  return entries;
 }
 
 function calculateIDF(term: string, tokenizedDocs: string[][]): number {
@@ -64,8 +77,8 @@ function calculateBM25Score(
 export function searchSystem(system: JohnnyDecimalSystem, query: string): SearchResult[] {
   if (!query.trim()) return [];
 
-  const { docs, results } = buildCorpus(system);
-  const tokenizedDocs = docs.map(tokenize);
+  const entries = buildCorpus(system);
+  const tokenizedDocs = entries.map(e => tokenize(e.text));
   const queryTerms = tokenize(query);
 
   if (queryTerms.length === 0) return [];
@@ -77,17 +90,31 @@ export function searchSystem(system: JohnnyDecimalSystem, query: string): Search
     idfScores.set(term, calculateIDF(term, tokenizedDocs));
   }
 
-  const scoredResults = results.map((result, idx) => {
+  const scoredResults: SearchResult[] = [];
+
+  entries.forEach((entry, idx) => {
     const { score, matchedTerms } = calculateBM25Score(
       queryTerms,
       tokenizedDocs[idx],
       avgDocLength,
       idfScores
     );
-    return { ...result, score, matchedTerms };
+
+    if (score > 0) {
+      const area = system.areas.find(a => a.id === entry.areaId)!;
+      const category = entry.categoryId 
+        ? area.categories.find(c => c.id === entry.categoryId)
+        : undefined;
+
+      scoredResults.push({
+        type: entry.type,
+        area,
+        category,
+        score,
+        matchedTerms
+      });
+    }
   });
 
-  return scoredResults
-    .filter(r => r.score > 0)
-    .sort((a, b) => b.score - a.score);
+  return scoredResults.sort((a, b) => b.score - a.score);
 }
