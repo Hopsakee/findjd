@@ -5,6 +5,7 @@ import { FileImport } from '@/components/FileImport';
 import { SystemSelector } from '@/components/SystemSelector';
 import { SearchInput } from '@/components/SearchInput';
 import { SearchResults } from '@/components/SearchResults';
+import { SystemTree } from '@/components/SystemTree';
 import { useJohnnyDecimal } from '@/hooks/useJohnnyDecimal';
 import { searchSystem } from '@/lib/bm25';
 
@@ -74,17 +75,25 @@ const Index = () => {
 
             <SearchInput value={query} onChange={setQuery} />
 
-            {query.trim() && results.length === 0 && (
-              <p className="text-center text-muted-foreground py-8">
-                No matches found. Try different terms or add tags to your categories.
-              </p>
+            {query.trim() ? (
+              results.length === 0 ? (
+                <p className="text-center text-muted-foreground py-8">
+                  No matches found. Try different terms or add tags to your categories.
+                </p>
+              ) : (
+                <SearchResults
+                  results={results}
+                  onUpdateArea={updateArea}
+                  onUpdateCategory={updateCategory}
+                />
+              )
+            ) : (
+              <SystemTree
+                system={activeSystem}
+                onUpdateArea={updateArea}
+                onUpdateCategory={updateCategory}
+              />
             )}
-
-            <SearchResults
-              results={results}
-              onUpdateArea={updateArea}
-              onUpdateCategory={updateCategory}
-            />
           </div>
         )}
       </div>
