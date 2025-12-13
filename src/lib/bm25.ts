@@ -45,7 +45,8 @@ function buildCorpus(system: JohnnyDecimalSystem): DocEntry[] {
 }
 
 function calculateIDF(term: string, tokenizedDocs: string[][]): number {
-  const docsWithTerm = tokenizedDocs.filter(doc => doc.includes(term)).length;
+  // Check for partial matches (any token containing the search term)
+  const docsWithTerm = tokenizedDocs.filter(doc => doc.some(t => t.includes(term))).length;
   if (docsWithTerm === 0) return 0;
   return Math.log((tokenizedDocs.length - docsWithTerm + 0.5) / (docsWithTerm + 0.5) + 1);
 }
@@ -61,7 +62,9 @@ function calculateBM25Score(
   const docLength = docTokens.length;
 
   for (const term of queryTerms) {
-    const termFreq = docTokens.filter(t => t === term).length;
+    // Count partial matches (tokens that contain the search term)
+    const matchingTokens = docTokens.filter(t => t.includes(term));
+    const termFreq = matchingTokens.length;
     if (termFreq === 0) continue;
 
     matchedTerms.push(term);
