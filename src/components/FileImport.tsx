@@ -12,12 +12,22 @@ export function FileImport({ onImport }: FileImportProps) {
   const [isDragging, setIsDragging] = useState(false);
   const { toast } = useToast();
 
-  const validateSystem = (data: unknown): data is JohnnyDecimalSystem => {
-    if (!data || typeof data !== 'object') return false;
-    const obj = data as Record<string, unknown>;
-    if (typeof obj.name !== 'string') return false;
-    if (!Array.isArray(obj.areas)) return false;
-    return true;
+  const normalizeSystem = (data: any): JohnnyDecimalSystem => {
+    return {
+      name: data.name || 'Unnamed',
+      areas: (data.areas || []).map((area: any) => ({
+        id: area.id || '',
+        name: area.name || '',
+        description: area.description || '',
+        tags: area.tags || [],
+        categories: (area.categories || []).map((cat: any) => ({
+          id: cat.id || '',
+          name: cat.name || '',
+          description: cat.description || '',
+          tags: cat.tags || []
+        }))
+      }))
+    };
   };
 
   const processFile = useCallback(async (file: File) => {
@@ -25,32 +35,31 @@ export function FileImport({ onImport }: FileImportProps) {
       const text = await file.text();
       const data = JSON.parse(text);
       
-      if (!validateSystem(data)) {
-        throw new Error('Invalid JSON format');
+      // Handle domains wrapper format
+      if (Array.isArray(data.domains)) {
+        data.domains.forEach((domain: any) => {
+          const system = normalizeSystem(domain);
+          onImport(system);
+        });
+        toast({
+          title: 'Systems loaded',
+          description: `Loaded ${data.domains.length} systems`
+        });
+        return;
       }
 
-      // Ensure all fields have defaults
-      const system: JohnnyDecimalSystem = {
-        name: data.name,
-        areas: data.areas.map((area: any) => ({
-          id: area.id || '',
-          name: area.name || '',
-          description: area.description || '',
-          tags: area.tags || [],
-          categories: (area.categories || []).map((cat: any) => ({
-            id: cat.id || '',
-            name: cat.name || '',
-            description: cat.description || '',
-            tags: cat.tags || []
-          }))
-        }))
-      };
+      // Handle direct system format
+      if (data.name && Array.isArray(data.areas)) {
+        const system = normalizeSystem(data);
+        onImport(system);
+        toast({
+          title: 'System loaded',
+          description: `"${system.name}" with ${system.areas.length} areas`
+        });
+        return;
+      }
 
-      onImport(system);
-      toast({
-        title: 'System loaded',
-        description: `"${system.name}" with ${system.areas.length} areas`
-      });
+      throw new Error('Invalid format');
     } catch (error) {
       toast({
         title: 'Import failed',
