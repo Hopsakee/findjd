@@ -6,6 +6,7 @@ import { SystemSelector } from '@/components/SystemSelector';
 import { SearchInput } from '@/components/SearchInput';
 import { SearchResults } from '@/components/SearchResults';
 import { SystemTree } from '@/components/SystemTree';
+import { HelpDialog } from '@/components/HelpDialog';
 import { useJohnnyDecimal } from '@/hooks/useJohnnyDecimal';
 import { searchSystem } from '@/lib/bm25';
 
@@ -47,9 +48,12 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-background">
       <div className="max-w-2xl mx-auto px-4 py-8">
-        <header className="mb-8">
-          <h1 className="text-2xl font-bold tracking-tight mb-1">Johnny Decimal Finder</h1>
-          <p className="text-muted-foreground text-sm">Find where to file things fast</p>
+        <header className="mb-8 flex items-start justify-between">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight mb-1">Johnny Decimal Finder</h1>
+            <p className="text-muted-foreground text-sm">Find where to file things fast</p>
+          </div>
+          <HelpDialog />
         </header>
 
         {systems.length === 0 ? (
