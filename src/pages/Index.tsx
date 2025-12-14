@@ -36,16 +36,21 @@ const Index = () => {
   // Keyboard shortcuts: 1-9 to switch systems (alphabetical order)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Don't trigger if typing in an input
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+      // Don't trigger if typing in an input or textarea
+      const target = e.target as HTMLElement;
+      const isEditing = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable;
+      if (isEditing) {
         return;
       }
       
-      const num = parseInt(e.key, 10);
-      if (num >= 1 && num <= 9 && num <= sortedSystemsMap.length) {
-        e.preventDefault();
-        const targetSystem = sortedSystemsMap[num - 1];
-        setActiveSystemIndex(targetSystem.originalIndex);
+      // Check for number keys 1-9
+      if (e.key >= '1' && e.key <= '9') {
+        const num = parseInt(e.key, 10);
+        if (num <= sortedSystemsMap.length) {
+          e.preventDefault();
+          const targetSystem = sortedSystemsMap[num - 1];
+          setActiveSystemIndex(targetSystem.originalIndex);
+        }
       }
     };
 

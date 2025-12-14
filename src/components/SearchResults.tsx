@@ -35,6 +35,7 @@ export function SearchResults({ results, focusIndex, onFocusChange, onUpdateArea
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const descriptionRefs = useRef<Map<string, HTMLTextAreaElement>>(new Map());
 
   // Scroll focused item into view
   useEffect(() => {
@@ -56,9 +57,63 @@ export function SearchResults({ results, focusIndex, onFocusChange, onUpdateArea
       const id = result.type === 'area' 
         ? `area-${result.area.id}` 
         : `cat-${result.area.id}-${result.category!.id}`;
-      setExpandedId(expandedId === id ? null : id);
+      
+      if (expandedId === id) {
+        // Already expanded - focus the description field
+        const textarea = descriptionRefs.current.get(id);
+        if (textarea) {
+          textarea.focus();
+        }
+      } else {
+        // Expand the item
+        setExpandedId(id);
+      }
     }
   }, [focusIndex, results, onFocusChange, expandedId]);
+
+  // Extract hashtags from description and add as tags
+  const handleDescriptionChange = useCallback((
+    value: string,
+    result: SearchResult
+  ) => {
+    // Find hashtags in the text
+    const hashtagRegex = /#(\w+)/g;
+    const matches = value.matchAll(hashtagRegex);
+    const newTags: string[] = [];
+    let cleanedValue = value;
+    
+    for (const match of matches) {
+      const tag = match[1];
+      newTags.push(tag);
+      // Remove the hashtag from the description
+      cleanedValue = cleanedValue.replace(match[0], '').trim();
+    }
+    
+    if (newTags.length > 0) {
+      // Add new tags and update description without the hashtags
+      const currentTags = result.type === 'area' ? result.area.tags : result.category!.tags;
+      const uniqueNewTags = newTags.filter(t => !currentTags.includes(t));
+      
+      if (result.type === 'area') {
+        onUpdateArea(result.area.id, { 
+          description: cleanedValue,
+          tags: [...currentTags, ...uniqueNewTags]
+        });
+      } else {
+        onUpdateCategory(result.area.id, result.category!.id, { 
+          description: cleanedValue,
+          tags: [...currentTags, ...uniqueNewTags]
+        });
+      }
+    } else {
+      // No hashtags, just update description normally
+      if (result.type === 'area') {
+        onUpdateArea(result.area.id, { description: value });
+      } else {
+        onUpdateCategory(result.area.id, result.category!.id, { description: value });
+      }
+    }
+  }, [onUpdateArea, onUpdateCategory]);
 
   if (results.length === 0) return null;
 
@@ -125,15 +180,12 @@ export function SearchResults({ results, focusIndex, onFocusChange, onUpdateArea
                     Description
                   </label>
                   <Textarea
-                    value={result.type === 'area' ? result.area.description : result.category!.description}
-                    onChange={e => {
-                      if (result.type === 'area') {
-                        onUpdateArea(result.area.id, { description: e.target.value });
-                      } else {
-                        onUpdateCategory(result.area.id, result.category!.id, { description: e.target.value });
-                      }
+                    ref={el => {
+                      if (el) descriptionRefs.current.set(id, el);
                     }}
-                    placeholder="Add a description..."
+                    value={result.type === 'area' ? result.area.description : result.category!.description}
+                    onChange={e => handleDescriptionChange(e.target.value, result)}
+                    placeholder="Add a description... (use #tag to add tags)"
                     className="min-h-[60px] text-sm"
                   />
                 </div>
