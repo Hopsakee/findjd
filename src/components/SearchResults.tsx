@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, forwardRef, useImperativeHandle } from 'react';
 import { ChevronRight, Folder, FileText } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { TagInput } from '@/components/TagInput';
@@ -10,6 +10,10 @@ interface SearchResultsProps {
   onFocusChange: (index: number) => void;
   onUpdateArea: (areaId: string, updates: Partial<Pick<Area, 'description' | 'tags'>>) => void;
   onUpdateCategory: (areaId: string, categoryId: string, updates: Partial<Pick<Category, 'description' | 'tags'>>) => void;
+}
+
+export interface SearchResultsRef {
+  focus: () => void;
 }
 
 function HighlightText({ text, terms }: { text: string; terms: string[] }) {
@@ -31,11 +35,18 @@ function HighlightText({ text, terms }: { text: string; terms: string[] }) {
   );
 }
 
-export function SearchResults({ results, focusIndex, onFocusChange, onUpdateArea, onUpdateCategory }: SearchResultsProps) {
+export const SearchResults = forwardRef<SearchResultsRef, SearchResultsProps>(({ results, focusIndex, onFocusChange, onUpdateArea, onUpdateCategory }, ref) => {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const descriptionRefs = useRef<Map<string, HTMLTextAreaElement>>(new Map());
+
+  // Expose focus method to parent
+  useImperativeHandle(ref, () => ({
+    focus: () => {
+      containerRef.current?.focus();
+    }
+  }));
 
   // Scroll focused item into view
   useEffect(() => {
@@ -211,4 +222,4 @@ export function SearchResults({ results, focusIndex, onFocusChange, onUpdateArea
       })}
     </div>
   );
-}
+});
