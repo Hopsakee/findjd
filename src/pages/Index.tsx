@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useCallback } from 'react';
+import { useState, useMemo, useRef, useCallback, useEffect } from 'react';
 import { Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { FileImport } from '@/components/FileImport';
@@ -25,6 +25,33 @@ const Index = () => {
     updateCategory,
     exportSystem
   } = useJohnnyDecimal();
+
+  // Sort systems alphabetically and create index mapping
+  const sortedSystemsMap = useMemo(() => {
+    return systems
+      .map((system, originalIndex) => ({ name: system.name, originalIndex }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [systems]);
+
+  // Keyboard shortcuts: 1-9 to switch systems (alphabetical order)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't trigger if typing in an input
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+        return;
+      }
+      
+      const num = parseInt(e.key, 10);
+      if (num >= 1 && num <= 9 && num <= sortedSystemsMap.length) {
+        e.preventDefault();
+        const targetSystem = sortedSystemsMap[num - 1];
+        setActiveSystemIndex(targetSystem.originalIndex);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [sortedSystemsMap, setActiveSystemIndex]);
 
   const results = useMemo(() => {
     if (!activeSystem || !query.trim()) return [];
