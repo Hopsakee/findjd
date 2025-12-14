@@ -13,7 +13,7 @@ import { searchSystem } from '@/lib/bm25';
 const Index = () => {
   const [query, setQuery] = useState('');
   const [focusIndex, setFocusIndex] = useState(-1);
-  const resultsRef = useRef<HTMLDivElement>(null);
+  const resultsRef = useRef<{ focus: () => void }>(null);
   
   const {
     systems,
@@ -72,7 +72,6 @@ const Index = () => {
   const handleArrowDown = useCallback(() => {
     if (results.length > 0) {
       setFocusIndex(0);
-      // Focus the results container
       resultsRef.current?.focus();
     }
   }, [results.length]);
@@ -138,15 +137,14 @@ const Index = () => {
                   No matches found. Try different terms or add tags to your categories.
                 </p>
               ) : (
-                <div ref={resultsRef} tabIndex={-1} className="outline-none">
-                  <SearchResults
-                    results={results}
-                    focusIndex={focusIndex}
-                    onFocusChange={setFocusIndex}
-                    onUpdateArea={updateArea}
-                    onUpdateCategory={updateCategory}
-                  />
-                </div>
+                <SearchResults
+                  ref={resultsRef}
+                  results={results}
+                  focusIndex={focusIndex}
+                  onFocusChange={setFocusIndex}
+                  onUpdateArea={updateArea}
+                  onUpdateCategory={updateCategory}
+                />
               )
             ) : (
               <SystemTree
