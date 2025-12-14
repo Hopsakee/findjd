@@ -62,6 +62,12 @@ export const SearchResults = forwardRef<SearchResultsRef, SearchResultsProps>(({
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
       onFocusChange(Math.max(focusIndex - 1, 0));
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      if (expandedId) {
+        setExpandedId(null);
+        containerRef.current?.focus();
+      }
     } else if (e.key === 'Enter' && focusIndex >= 0) {
       e.preventDefault();
       const result = results[focusIndex];
