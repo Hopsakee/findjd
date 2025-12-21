@@ -1,8 +1,14 @@
+export interface Item {
+  id: string;
+  name: string;
+}
+
 export interface Category {
   id: string;
   name: string;
   description: string;
   tags: string[];
+  items?: Item[];
 }
 
 export interface Area {
