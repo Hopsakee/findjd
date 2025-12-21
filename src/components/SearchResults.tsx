@@ -2,7 +2,8 @@ import { useState, useEffect, useRef, useCallback, forwardRef, useImperativeHand
 import { ChevronRight, Folder, FileText } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { TagInput } from '@/components/TagInput';
-import type { SearchResult, Area, Category } from '@/types/johnnyDecimal';
+import { ItemList } from '@/components/ItemList';
+import type { SearchResult, Area, Category, Item } from '@/types/johnnyDecimal';
 
 interface SearchResultsProps {
   results: SearchResult[];
@@ -10,6 +11,9 @@ interface SearchResultsProps {
   onFocusChange: (index: number) => void;
   onUpdateArea: (areaId: string, updates: Partial<Pick<Area, 'description' | 'tags'>>) => void;
   onUpdateCategory: (areaId: string, categoryId: string, updates: Partial<Pick<Category, 'description' | 'tags'>>) => void;
+  onAddItem: (areaId: string, categoryId: string, item: Item) => void;
+  onUpdateItem: (areaId: string, categoryId: string, itemId: string, updates: Partial<Item>) => void;
+  onRemoveItem: (areaId: string, categoryId: string, itemId: string) => void;
 }
 
 export interface SearchResultsRef {
@@ -35,7 +39,7 @@ function HighlightText({ text, terms }: { text: string; terms: string[] }) {
   );
 }
 
-export const SearchResults = forwardRef<SearchResultsRef, SearchResultsProps>(({ results, focusIndex, onFocusChange, onUpdateArea, onUpdateCategory }, ref) => {
+export const SearchResults = forwardRef<SearchResultsRef, SearchResultsProps>(({ results, focusIndex, onFocusChange, onUpdateArea, onUpdateCategory, onAddItem, onUpdateItem, onRemoveItem }, ref) => {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<(HTMLButtonElement | null)[]>([]);
@@ -225,6 +229,17 @@ export const SearchResults = forwardRef<SearchResultsRef, SearchResultsProps>(({
                     }}
                   />
                 </div>
+                {result.type === 'category' && (
+                  <div className="pt-2 border-t">
+                    <ItemList
+                      items={result.category!.items || []}
+                      categoryId={result.category!.id}
+                      onAdd={item => onAddItem(result.area.id, result.category!.id, item)}
+                      onUpdate={(itemId, updates) => onUpdateItem(result.area.id, result.category!.id, itemId, updates)}
+                      onRemove={itemId => onRemoveItem(result.area.id, result.category!.id, itemId)}
+                    />
+                  </div>
+                )}
               </div>
             )}
           </div>

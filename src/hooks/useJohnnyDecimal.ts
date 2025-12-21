@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
-import type { JohnnyDecimalSystem, Area, Category } from '@/types/johnnyDecimal';
+import type { JohnnyDecimalSystem, Area, Category, Item } from '@/types/johnnyDecimal';
 
 const STORAGE_KEY = 'johnny-decimal-systems';
 const ACTIVE_INDEX_KEY = 'johnny-decimal-active-index';
@@ -65,7 +65,7 @@ export function useJohnnyDecimal() {
     }));
   }, [activeSystemIndex]);
 
-  const updateCategory = useCallback((areaId: string, categoryId: string, updates: Partial<Pick<Category, 'description' | 'tags'>>) => {
+  const updateCategory = useCallback((areaId: string, categoryId: string, updates: Partial<Pick<Category, 'description' | 'tags' | 'items'>>) => {
     setSystems(prev => prev.map((system, idx) => {
       if (idx !== activeSystemIndex) return system;
       return {
@@ -77,6 +77,72 @@ export function useJohnnyDecimal() {
             categories: area.categories.map(cat =>
               cat.id === categoryId ? { ...cat, ...updates } : cat
             )
+          };
+        })
+      };
+    }));
+  }, [activeSystemIndex]);
+
+  const addItem = useCallback((areaId: string, categoryId: string, item: Item) => {
+    setSystems(prev => prev.map((system, idx) => {
+      if (idx !== activeSystemIndex) return system;
+      return {
+        ...system,
+        areas: system.areas.map(area => {
+          if (area.id !== areaId) return area;
+          return {
+            ...area,
+            categories: area.categories.map(cat => {
+              if (cat.id !== categoryId) return cat;
+              const items = cat.items || [];
+              return { ...cat, items: [...items, item] };
+            })
+          };
+        })
+      };
+    }));
+  }, [activeSystemIndex]);
+
+  const updateItem = useCallback((areaId: string, categoryId: string, itemId: string, updates: Partial<Item>) => {
+    setSystems(prev => prev.map((system, idx) => {
+      if (idx !== activeSystemIndex) return system;
+      return {
+        ...system,
+        areas: system.areas.map(area => {
+          if (area.id !== areaId) return area;
+          return {
+            ...area,
+            categories: area.categories.map(cat => {
+              if (cat.id !== categoryId) return cat;
+              return {
+                ...cat,
+                items: (cat.items || []).map(item =>
+                  item.id === itemId ? { ...item, ...updates } : item
+                )
+              };
+            })
+          };
+        })
+      };
+    }));
+  }, [activeSystemIndex]);
+
+  const removeItem = useCallback((areaId: string, categoryId: string, itemId: string) => {
+    setSystems(prev => prev.map((system, idx) => {
+      if (idx !== activeSystemIndex) return system;
+      return {
+        ...system,
+        areas: system.areas.map(area => {
+          if (area.id !== areaId) return area;
+          return {
+            ...area,
+            categories: area.categories.map(cat => {
+              if (cat.id !== categoryId) return cat;
+              return {
+                ...cat,
+                items: (cat.items || []).filter(item => item.id !== itemId)
+              };
+            })
           };
         })
       };
@@ -102,6 +168,9 @@ export function useJohnnyDecimal() {
     loadSystem,
     updateArea,
     updateCategory,
+    addItem,
+    updateItem,
+    removeItem,
     exportSystem
   };
 }

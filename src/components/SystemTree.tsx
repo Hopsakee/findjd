@@ -2,15 +2,19 @@ import { useState } from 'react';
 import { ChevronRight, Folder, FileText } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { TagInput } from '@/components/TagInput';
-import type { JohnnyDecimalSystem, Area, Category } from '@/types/johnnyDecimal';
+import { ItemList } from '@/components/ItemList';
+import type { JohnnyDecimalSystem, Area, Category, Item } from '@/types/johnnyDecimal';
 
 interface SystemTreeProps {
   system: JohnnyDecimalSystem;
   onUpdateArea: (areaId: string, updates: Partial<Pick<Area, 'description' | 'tags'>>) => void;
   onUpdateCategory: (areaId: string, categoryId: string, updates: Partial<Pick<Category, 'description' | 'tags'>>) => void;
+  onAddItem: (areaId: string, categoryId: string, item: Item) => void;
+  onUpdateItem: (areaId: string, categoryId: string, itemId: string, updates: Partial<Item>) => void;
+  onRemoveItem: (areaId: string, categoryId: string, itemId: string) => void;
 }
 
-export function SystemTree({ system, onUpdateArea, onUpdateCategory }: SystemTreeProps) {
+export function SystemTree({ system, onUpdateArea, onUpdateCategory, onAddItem, onUpdateItem, onRemoveItem }: SystemTreeProps) {
   const [expandedAreas, setExpandedAreas] = useState<Set<string>>(new Set());
   const [editingId, setEditingId] = useState<string | null>(null);
 
@@ -97,6 +101,15 @@ export function SystemTree({ system, onUpdateArea, onUpdateCategory }: SystemTre
                             tags={category.tags}
                             onChange={tags => onUpdateCategory(area.id, category.id, { tags })}
                           />
+                          <div className="pt-2 border-t">
+                            <ItemList
+                              items={category.items || []}
+                              categoryId={category.id}
+                              onAdd={item => onAddItem(area.id, category.id, item)}
+                              onUpdate={(itemId, updates) => onUpdateItem(area.id, category.id, itemId, updates)}
+                              onRemove={itemId => onRemoveItem(area.id, category.id, itemId)}
+                            />
+                          </div>
                         </div>
                       )}
                     </div>

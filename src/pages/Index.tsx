@@ -23,6 +23,9 @@ const Index = () => {
     loadSystem,
     updateArea,
     updateCategory,
+    addItem,
+    updateItem,
+    removeItem,
     exportSystem
   } = useJohnnyDecimal();
 
@@ -144,6 +147,9 @@ const Index = () => {
                   onFocusChange={setFocusIndex}
                   onUpdateArea={updateArea}
                   onUpdateCategory={updateCategory}
+                  onAddItem={addItem}
+                  onUpdateItem={updateItem}
+                  onRemoveItem={removeItem}
                 />
               )
             ) : (
@@ -151,6 +157,9 @@ const Index = () => {
                 system={activeSystem}
                 onUpdateArea={updateArea}
                 onUpdateCategory={updateCategory}
+                onAddItem={addItem}
+                onUpdateItem={updateItem}
+                onRemoveItem={removeItem}
               />
             )}
           </div>
