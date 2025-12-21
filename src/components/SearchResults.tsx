@@ -67,6 +67,11 @@ export const SearchResults = forwardRef<SearchResultsRef, SearchResultsProps>(({
   }, [focusIndex]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    // Don't intercept keys when typing in inputs or textareas
+    const target = e.target as HTMLElement;
+    const isEditing = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA';
+    if (isEditing) return;
+
     if (e.key === 'ArrowDown') {
       e.preventDefault();
       onFocusChange(Math.min(focusIndex + 1, results.length - 1));
