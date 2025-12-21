@@ -88,49 +88,46 @@ export const SearchResults = forwardRef<SearchResultsRef, SearchResultsProps>(({
     }
   }, [focusIndex, results, onFocusChange, expandedId]);
 
-  // Handle description change - just update the value
+  // Extract hashtags from description and add as tags
   const handleDescriptionChange = useCallback((
     value: string,
     result: SearchResult
   ) => {
-    if (result.type === 'area') {
-      onUpdateArea(result.area.id, { description: value });
-    } else {
-      onUpdateCategory(result.area.id, result.category!.id, { description: value });
+    // Find hashtags in the text
+    const hashtagRegex = /#(\w+)/g;
+    const matches = value.matchAll(hashtagRegex);
+    const newTags: string[] = [];
+    let cleanedValue = value;
+    
+    for (const match of matches) {
+      const tag = match[1];
+      newTags.push(tag);
+      // Remove the hashtag from the description
+      cleanedValue = cleanedValue.replace(match[0], '').trim();
     }
-  }, [onUpdateArea, onUpdateCategory]);
-
-  // Extract hashtags on space/enter/tab
-  const handleDescriptionKeyDown = useCallback((
-    e: React.KeyboardEvent<HTMLTextAreaElement>,
-    result: SearchResult
-  ) => {
-    if (e.key === ' ' || e.key === 'Enter' || e.key === 'Tab') {
-      const textarea = e.currentTarget;
-      const value = textarea.value;
+    
+    if (newTags.length > 0) {
+      // Add new tags and update description without the hashtags
+      const currentTags = result.type === 'area' ? result.area.tags : result.category!.tags;
+      const uniqueNewTags = newTags.filter(t => !currentTags.includes(t));
       
-      // Find completed hashtags (followed by the trigger key position)
-      const hashtagRegex = /#(\w+)$/;
-      const cursorPos = textarea.selectionStart;
-      const textBeforeCursor = value.substring(0, cursorPos);
-      const match = textBeforeCursor.match(hashtagRegex);
-      
-      if (match) {
-        e.preventDefault();
-        const tag = match[1];
-        const currentTags = result.type === 'area' ? result.area.tags : result.category!.tags;
-        
-        // Remove the hashtag from description
-        const newValue = value.substring(0, cursorPos - match[0].length) + value.substring(cursorPos);
-        
-        // Add tag if not duplicate
-        const newTags = currentTags.includes(tag) ? currentTags : [...currentTags, tag];
-        
-        if (result.type === 'area') {
-          onUpdateArea(result.area.id, { description: newValue.trim(), tags: newTags });
-        } else {
-          onUpdateCategory(result.area.id, result.category!.id, { description: newValue.trim(), tags: newTags });
-        }
+      if (result.type === 'area') {
+        onUpdateArea(result.area.id, { 
+          description: cleanedValue,
+          tags: [...currentTags, ...uniqueNewTags]
+        });
+      } else {
+        onUpdateCategory(result.area.id, result.category!.id, { 
+          description: cleanedValue,
+          tags: [...currentTags, ...uniqueNewTags]
+        });
+      }
+    } else {
+      // No hashtags, just update description normally
+      if (result.type === 'area') {
+        onUpdateArea(result.area.id, { description: value });
+      } else {
+        onUpdateCategory(result.area.id, result.category!.id, { description: value });
       }
     }
   }, [onUpdateArea, onUpdateCategory]);
@@ -205,7 +202,6 @@ export const SearchResults = forwardRef<SearchResultsRef, SearchResultsProps>(({
                     }}
                     value={result.type === 'area' ? result.area.description : result.category!.description}
                     onChange={e => handleDescriptionChange(e.target.value, result)}
-                    onKeyDown={e => handleDescriptionKeyDown(e, result)}
                     placeholder="Add a description... (use #tag to add tags)"
                     className="min-h-[60px] text-sm"
                   />
