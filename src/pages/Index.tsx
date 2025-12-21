@@ -9,11 +9,14 @@ import { SystemTree } from '@/components/SystemTree';
 import { HelpDialog } from '@/components/HelpDialog';
 import { useJohnnyDecimal } from '@/hooks/useJohnnyDecimal';
 import { searchSystem } from '@/lib/bm25';
+import { validateSystem, MAX_FILE_SIZE } from '@/lib/validation';
+import { useToast } from '@/hooks/use-toast';
 
 const Index = () => {
   const [query, setQuery] = useState('');
   const [focusIndex, setFocusIndex] = useState(-1);
   const resultsRef = useRef<{ focus: () => void }>(null);
+  const { toast } = useToast();
   
   const {
     systems,
@@ -26,7 +29,8 @@ const Index = () => {
     addItem,
     updateItem,
     removeItem,
-    exportSystem
+    exportSystem,
+    clearAllData
   } = useJohnnyDecimal();
 
   // Sort systems alphabetically and create index mapping
@@ -87,7 +91,7 @@ const Index = () => {
             <h1 className="text-2xl font-bold tracking-tight mb-1">Johnny Decimal Finder</h1>
             <p className="text-muted-foreground text-sm">Find where to file things fast</p>
           </div>
-          <HelpDialog />
+          <HelpDialog onClearData={clearAllData} />
         </header>
 
         {systems.length === 0 ? (
@@ -110,9 +114,39 @@ const Index = () => {
                       onChange={e => {
                         const file = e.target.files?.[0];
                         if (file) {
+                          if (file.size > MAX_FILE_SIZE) {
+                            toast({
+                              title: 'File too large',
+                              description: 'Maximum file size is 5MB',
+                              variant: 'destructive'
+                            });
+                            e.target.value = '';
+                            return;
+                          }
                           file.text().then(text => {
-                            const data = JSON.parse(text);
-                            loadSystem(data);
+                            try {
+                              const data = JSON.parse(text);
+                              const result = validateSystem(data);
+                              if (result.success) {
+                                loadSystem(result.data);
+                                toast({
+                                  title: 'System loaded',
+                                  description: `"${result.data.name}" added`
+                                });
+                              } else {
+                                toast({
+                                  title: 'Invalid file format',
+                                  description: result.error,
+                                  variant: 'destructive'
+                                });
+                              }
+                            } catch {
+                              toast({
+                                title: 'Import failed',
+                                description: 'Invalid JSON file',
+                                variant: 'destructive'
+                              });
+                            }
                           });
                         }
                         e.target.value = '';
