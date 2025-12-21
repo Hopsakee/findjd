@@ -2,27 +2,19 @@ import { useState, useRef, useEffect } from 'react';
 import { Plus, X, Pencil, Check } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { useInputKeyboard, parseItemPattern, buildItemId } from '@/hooks/useKeyboardHandlers';
 import type { Item } from '@/types/johnnyDecimal';
 
 interface ItemListProps {
   items: Item[];
   categoryId: string;
-  systemPrefix?: string; // e.g., "d1" from system name
+  systemPrefix?: string;
   onAdd: (item: Item) => void;
   onUpdate: (itemId: string, updates: Partial<Item>) => void;
   onRemove: (itemId: string) => void;
 }
 
-// Parse "Name [XX]" format and return { name, number } or null
-function parseQuickAdd(input: string): { name: string; number: string } | null {
-  const match = input.trim().match(/^(.+?)\s*\[(\d+)\]$/);
-  if (match) {
-    return { name: match[1].trim(), number: match[2] };
-  }
-  return null;
-}
-
-export function ItemList({ items, categoryId, systemPrefix, onAdd, onUpdate, onRemove }: ItemListProps) {
+export function ItemList({ items, categoryId, systemPrefix = '', onAdd, onUpdate, onRemove }: ItemListProps) {
   const [isAdding, setIsAdding] = useState(false);
   const [newId, setNewId] = useState('');
   const [newName, setNewName] = useState('');
@@ -41,13 +33,11 @@ export function ItemList({ items, categoryId, systemPrefix, onAdd, onUpdate, onR
 
   // Keyboard shortcut: 'n' or 'a' to focus quick add when container has focus
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Only trigger if no input is focused
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
       const activeEl = document.activeElement;
       const isInputFocused = activeEl?.tagName === 'INPUT' || activeEl?.tagName === 'TEXTAREA';
-      
+
       if (!isInputFocused && (e.key === 'n' || e.key === 'a')) {
-        // Check if this ItemList container or its parent is in view/focused context
         if (containerRef.current?.closest('[data-item-list-active="true"]')) {
           e.preventDefault();
           quickAddRef.current?.focus();
@@ -55,10 +45,11 @@ export function ItemList({ items, categoryId, systemPrefix, onAdd, onUpdate, onR
       }
     };
 
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
+    document.addEventListener('keydown', handleGlobalKeyDown);
+    return () => document.removeEventListener('keydown', handleGlobalKeyDown);
   }, []);
 
+  // Handlers for adding items
   const handleAdd = () => {
     if (newId.trim() && newName.trim()) {
       onAdd({ id: newId.trim(), name: newName.trim() });
@@ -69,44 +60,29 @@ export function ItemList({ items, categoryId, systemPrefix, onAdd, onUpdate, onR
   };
 
   const handleQuickAdd = () => {
-    const parsed = parseQuickAdd(quickAddValue);
+    const parsed = parseItemPattern(quickAddValue);
     if (parsed) {
-      // Build full ID: systemPrefix.categoryId.number (e.g., d1.22.03)
-      const paddedNumber = parsed.number.padStart(2, '0');
-      const fullId = systemPrefix 
-        ? `${systemPrefix}.${categoryId}.${paddedNumber}`
-        : `${categoryId}.${paddedNumber}`;
-      
+      const fullId = buildItemId(systemPrefix, categoryId, parsed.number);
       onAdd({ id: fullId, name: parsed.name });
       setQuickAddValue('');
     }
   };
 
-  const handleQuickAddKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      handleQuickAdd();
-    } else if (e.key === 'Escape') {
-      setQuickAddValue('');
-      (e.target as HTMLInputElement).blur();
-    }
-  };
+  // Use shared keyboard handlers
+  const { handleKeyDown: quickAddKeyDown } = useInputKeyboard({
+    onSubmit: handleQuickAdd,
+    clearOnEscape: true,
+    setValue: setQuickAddValue,
+  });
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      handleAdd();
-    } else if (e.key === 'Escape') {
+  const { handleKeyDown: manualAddKeyDown } = useInputKeyboard({
+    onSubmit: handleAdd,
+    onCancel: () => {
       setIsAdding(false);
       setNewId('');
       setNewName('');
-    }
-  };
-
-  const handleStartEdit = (item: Item) => {
-    setEditingId(item.id);
-    setEditName(item.name);
-  };
+    },
+  });
 
   const handleSaveEdit = () => {
     if (editingId && editName.trim()) {
@@ -116,14 +92,17 @@ export function ItemList({ items, categoryId, systemPrefix, onAdd, onUpdate, onR
     }
   };
 
-  const handleEditKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      handleSaveEdit();
-    } else if (e.key === 'Escape') {
+  const { handleKeyDown: editKeyDown } = useInputKeyboard({
+    onSubmit: handleSaveEdit,
+    onCancel: () => {
       setEditingId(null);
       setEditName('');
-    }
+    },
+  });
+
+  const handleStartEdit = (item: Item) => {
+    setEditingId(item.id);
+    setEditName(item.name);
   };
 
   return (
@@ -151,7 +130,7 @@ export function ItemList({ items, categoryId, systemPrefix, onAdd, onUpdate, onR
           ref={quickAddRef}
           value={quickAddValue}
           onChange={e => setQuickAddValue(e.target.value)}
-          onKeyDown={handleQuickAddKeyDown}
+          onKeyDown={quickAddKeyDown}
           placeholder={`Item name [${String(sortedItems.length + 1).padStart(2, '0')}]`}
           className="flex-1 h-7 text-xs"
         />
@@ -160,7 +139,7 @@ export function ItemList({ items, categoryId, systemPrefix, onAdd, onUpdate, onR
           size="sm"
           onClick={handleQuickAdd}
           className="h-7 w-7 p-0"
-          disabled={!parseQuickAdd(quickAddValue)}
+          disabled={!parseItemPattern(quickAddValue)}
         >
           <Check className="h-3 w-3" />
         </Button>
@@ -175,7 +154,7 @@ export function ItemList({ items, categoryId, systemPrefix, onAdd, onUpdate, onR
           <Input
             value={newId}
             onChange={e => setNewId(e.target.value)}
-            onKeyDown={handleKeyDown}
+            onKeyDown={manualAddKeyDown}
             placeholder={`${categoryId}.XX`}
             className="w-24 h-7 text-xs font-mono"
             autoFocus
@@ -183,7 +162,7 @@ export function ItemList({ items, categoryId, systemPrefix, onAdd, onUpdate, onR
           <Input
             value={newName}
             onChange={e => setNewName(e.target.value)}
-            onKeyDown={handleKeyDown}
+            onKeyDown={manualAddKeyDown}
             placeholder="Name"
             className="flex-1 h-7 text-xs"
           />
@@ -224,7 +203,7 @@ export function ItemList({ items, categoryId, systemPrefix, onAdd, onUpdate, onR
                   <Input
                     value={editName}
                     onChange={e => setEditName(e.target.value)}
-                    onKeyDown={handleEditKeyDown}
+                    onKeyDown={editKeyDown}
                     onBlur={handleSaveEdit}
                     className="h-5 w-24 text-xs px-1"
                     autoFocus
