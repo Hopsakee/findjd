@@ -66,59 +66,6 @@ The built files will be in the `dist` folder, ready to be deployed to any static
 4. **Export**: Regularly export your data as a backup (JSON format)
 5. **Import**: Restore from a backup or share systems between devices
 
-## GitHub Sync (via Lovable)
-
-This project supports bidirectional sync with GitHub through the Lovable platform.
-
-### How to Connect GitHub
-
-1. **In Lovable Editor**: Click **GitHub** → **Connect to GitHub**
-2. **Authorize**: Grant the Lovable GitHub App access to your GitHub account
-3. **Select Account**: Choose the GitHub account/organization for the repository
-4. **Create Repository**: Click **Create Repository** in Lovable
-
-### Setting Up Personal Access Token (for CLI/API access)
-
-If you need to access your GitHub repository programmatically:
-
-1. Go to **GitHub** → **Settings** → **Developer settings** → **Personal access tokens** → **Tokens (classic)**
-2. Click **Generate new token (classic)**
-3. Give it a descriptive name (e.g., "Johnny Decimal Manager")
-4. Select scopes:
-   - `repo` (full control of private repositories)
-   - `workflow` (if using GitHub Actions)
-5. Click **Generate token**
-6. **Copy the token immediately** (you won't see it again!)
-
-**⚠️ Security Warning**: 
-- Never commit your Personal Access Token to the repository
-- Never share your token publicly
-- Store tokens securely (use environment variables or a secrets manager)
-- Revoke tokens you no longer need
-
-### Sync Behavior
-
-- **Lovable → GitHub**: Changes made in Lovable automatically push to GitHub
-- **GitHub → Lovable**: Changes pushed to GitHub automatically sync to Lovable
-- **Real-time**: Sync happens automatically without manual pulls or pushes
-
-### Local Development with GitHub
-
-```bash
-# Clone the synced repository
-git clone https://github.com/YOUR_USERNAME/YOUR_REPO.git
-
-# Make changes locally
-# ... edit files ...
-
-# Commit and push
-git add .
-git commit -m "feat: your changes"
-git push origin main
-```
-
-Changes will automatically appear in Lovable.
-
 ## Technology Stack
 
 - [React](https://react.dev/) - UI framework
@@ -145,27 +92,13 @@ Changes will automatically appear in Lovable.
 > - The code is provided as-is without warranty
 > - You are encouraged to review the code yourself before using in production environments
 
-## Secrets & Security
-
-This codebase contains **no secrets, API keys, or sensitive credentials**. All application data is stored locally in the user's browser using localStorage.
-
-If you fork this project and add integrations requiring API keys:
-- Never commit secrets to the repository
-- Use environment variables for sensitive data
-- Add secrets to `.gitignore`
-- Consider using a secrets manager for production
-
 ## Privacy
 
 All data is stored locally in your browser's localStorage. No data is ever sent to any server. You can clear all data at any time through the Help menu.
 
-## Contributing
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on how to contribute to this project.
-
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is open source. Feel free to fork, modify, and use as you see fit.
 
 ---
 
