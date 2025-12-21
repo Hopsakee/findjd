@@ -67,9 +67,23 @@ export const SearchResults = forwardRef<SearchResultsRef, SearchResultsProps>(({
   }, [focusIndex]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    // Don't intercept keys when typing in inputs or textareas
+    // Don't intercept most keys when typing in inputs or textareas
     const target = e.target as HTMLElement;
     const isEditing = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA';
+    
+    // Allow Escape to work even in editing mode (blur the field)
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      if (isEditing) {
+        (target as HTMLInputElement | HTMLTextAreaElement).blur();
+      } else if (expandedId) {
+        setExpandedId(null);
+        containerRef.current?.focus();
+      }
+      return;
+    }
+    
+    // Don't intercept other keys when editing
     if (isEditing) return;
 
     if (e.key === 'ArrowDown') {
@@ -78,12 +92,6 @@ export const SearchResults = forwardRef<SearchResultsRef, SearchResultsProps>(({
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
       onFocusChange(Math.max(focusIndex - 1, 0));
-    } else if (e.key === 'Escape') {
-      e.preventDefault();
-      if (expandedId) {
-        setExpandedId(null);
-        containerRef.current?.focus();
-      }
     } else if (e.key === 'Enter' && focusIndex >= 0) {
       e.preventDefault();
       const result = results[focusIndex];
@@ -116,19 +124,45 @@ export const SearchResults = forwardRef<SearchResultsRef, SearchResultsProps>(({
     }
   }, [onUpdateArea, onUpdateCategory]);
 
-  // Extract hashtags on space/enter/tab
+  // Extract hashtags on space/enter/tab, and items on enter with format "Name [XX]"
   const handleDescriptionKeyDown = useCallback((
     e: React.KeyboardEvent<HTMLTextAreaElement>,
     result: SearchResult
   ) => {
-    if (e.key === ' ' || e.key === 'Enter' || e.key === 'Tab') {
-      const textarea = e.currentTarget;
-      const value = textarea.value;
+    const textarea = e.currentTarget;
+    const value = textarea.value;
+    const cursorPos = textarea.selectionStart;
+    const textBeforeCursor = value.substring(0, cursorPos);
+    
+    // On Enter, check for item pattern "Name [XX]" on the current line (only for categories)
+    if (e.key === 'Enter' && result.type === 'category') {
+      // Get the current line (text from last newline to cursor)
+      const lastNewline = textBeforeCursor.lastIndexOf('\n');
+      const currentLine = textBeforeCursor.substring(lastNewline + 1);
+      const itemMatch = currentLine.match(/^(.+?)\s*\[(\d+)\]$/);
       
-      // Find completed hashtags (followed by the trigger key position)
+      if (itemMatch) {
+        e.preventDefault();
+        const itemName = itemMatch[1].trim();
+        const itemNumber = itemMatch[2].padStart(2, '0');
+        const prefix = systemName ? extractSystemPrefix(systemName) : '';
+        const fullId = prefix 
+          ? `${prefix}.${result.category!.id}.${itemNumber}`
+          : `${result.category!.id}.${itemNumber}`;
+        
+        // Add the item
+        onAddItem(result.area.id, result.category!.id, { id: fullId, name: itemName });
+        
+        // Remove the line from description
+        const newValue = value.substring(0, lastNewline + 1) + value.substring(cursorPos);
+        onUpdateCategory(result.area.id, result.category!.id, { description: newValue.trim() });
+        return;
+      }
+    }
+    
+    // Check for hashtags on space/enter/tab
+    if (e.key === ' ' || e.key === 'Enter' || e.key === 'Tab') {
       const hashtagRegex = /#(\w+)$/;
-      const cursorPos = textarea.selectionStart;
-      const textBeforeCursor = value.substring(0, cursorPos);
       const match = textBeforeCursor.match(hashtagRegex);
       
       if (match) {
@@ -149,7 +183,7 @@ export const SearchResults = forwardRef<SearchResultsRef, SearchResultsProps>(({
         }
       }
     }
-  }, [onUpdateArea, onUpdateCategory]);
+  }, [onUpdateArea, onUpdateCategory, onAddItem, systemName]);
 
   if (results.length === 0) return null;
 

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { ChevronRight, Folder, FileText } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { TagInput } from '@/components/TagInput';
@@ -35,6 +35,42 @@ export function SystemTree({ system, onUpdateArea, onUpdateCategory, onAddItem, 
       return next;
     });
   };
+
+  // Handle keydown in category description - parse "Name [XX]" to add items
+  const handleCategoryDescriptionKeyDown = useCallback((
+    e: React.KeyboardEvent<HTMLTextAreaElement>,
+    areaId: string,
+    category: Category
+  ) => {
+    if (e.key === 'Enter') {
+      const textarea = e.currentTarget;
+      const value = textarea.value;
+      const cursorPos = textarea.selectionStart;
+      const textBeforeCursor = value.substring(0, cursorPos);
+      
+      // Get the current line (text from last newline to cursor)
+      const lastNewline = textBeforeCursor.lastIndexOf('\n');
+      const currentLine = textBeforeCursor.substring(lastNewline + 1);
+      const itemMatch = currentLine.match(/^(.+?)\s*\[(\d+)\]$/);
+      
+      if (itemMatch) {
+        e.preventDefault();
+        const itemName = itemMatch[1].trim();
+        const itemNumber = itemMatch[2].padStart(2, '0');
+        const prefix = extractSystemPrefix(system.name);
+        const fullId = prefix 
+          ? `${prefix}.${category.id}.${itemNumber}`
+          : `${category.id}.${itemNumber}`;
+        
+        // Add the item
+        onAddItem(areaId, category.id, { id: fullId, name: itemName });
+        
+        // Remove the line from description
+        const newValue = value.substring(0, lastNewline + 1) + value.substring(cursorPos);
+        onUpdateCategory(areaId, category.id, { description: newValue.trim() });
+      }
+    }
+  }, [system.name, onAddItem, onUpdateCategory]);
 
   return (
     <div className="space-y-1">
@@ -100,7 +136,8 @@ export function SystemTree({ system, onUpdateArea, onUpdateCategory, onAddItem, 
                           <Textarea
                             value={category.description}
                             onChange={e => onUpdateCategory(area.id, category.id, { description: e.target.value })}
-                            placeholder="Category description..."
+                            onKeyDown={e => handleCategoryDescriptionKeyDown(e, area.id, category)}
+                            placeholder="Category description... (type 'Name [XX]' + Enter to add item)"
                             className="min-h-[50px] text-sm"
                           />
                           <TagInput
