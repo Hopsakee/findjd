@@ -58,10 +58,31 @@ src/
 ├── components/     # React components
 │   └── ui/         # Reusable UI components (shadcn/ui)
 ├── hooks/          # Custom React hooks
+│   └── useKeyboardHandlers.ts  # Unified keyboard handling
 ├── lib/            # Utility functions and validation
 ├── pages/          # Page components
 └── types/          # TypeScript type definitions
 ```
+
+## Key Architecture Decisions
+
+### Keyboard Handling
+
+All keyboard shortcuts are centralized in `src/hooks/useKeyboardHandlers.ts` to prevent regressions and ensure consistent behavior across components. This includes:
+
+- `useInputKeyboard`: For simple input fields (Enter to submit, Escape to cancel/blur)
+- `useDescriptionKeyboard`: For description textareas (item parsing, hashtag extraction)
+- `useContainerNavigation`: For container-level arrow key navigation
+
+When adding new keyboard interactions, extend these hooks rather than adding inline handlers.
+
+### Item ID Format
+
+Items use the format `prefix.categoryId.number` (e.g., `d1.22.03`). The system prefix is extracted from the system name using the pattern `^([a-zA-Z]\d+)` (e.g., "d1-Work" → "d1").
+
+### Quick-Add Pattern
+
+Users can add items by typing `Name [XX]` in category descriptions. The regex `/^(.+?)\s*\[(\d+)\]$/` matches this pattern.
 
 ## Development Tips
 
@@ -69,6 +90,20 @@ src/
 - The app uses the [Johnny Decimal](https://johnnydecimal.com/) methodology
 - Import/export uses JSON format with Zod validation
 - Search uses BM25 algorithm for relevance ranking
+- Press `?` to open the help dialog for keyboard shortcut reference
+
+## Testing Keyboard Shortcuts
+
+When modifying keyboard handling:
+
+1. Test `/` focuses search from anywhere
+2. Test `?` opens help dialog
+3. Test `1`-`9` switch systems (only when not in an input)
+4. Test `↑`/`↓` navigate search results
+5. Test `Enter` expands results and focuses description
+6. Test `Esc` blurs fields and closes editors
+7. Test `Name [XX]` + Enter adds items in category descriptions
+8. Test `#tag` + Space adds tags in descriptions
 
 ## Questions?
 

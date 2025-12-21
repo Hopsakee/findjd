@@ -9,17 +9,37 @@ Johnny.Decimal is a system to organize your digital (and physical) life. It prov
 - **Domains** (optional prefix): High-level life areas (e.g., `d1` for Work, `d2` for Personal)
 - **Areas** (10-19, 20-29, etc.): Broad categories within a domain
 - **Categories** (11, 12, 21, 22, etc.): Specific topics within an area
-- **Items** (11.01, 11.02, etc.): Individual items within a category
+- **Items** (d1.11.01, d1.11.02, etc.): Individual items within a category
 
 ## Features
 
 - **Hierarchical Organization**: Create and manage domains, areas, categories, and items
 - **Full-Text Search**: Quickly find anything using BM25-powered search
 - **Tag Support**: Add tags to categories and items for additional organization
+- **Quick Item Entry**: Type `Item Name [XX]` in descriptions to instantly add items
+- **Keyboard-First Design**: Navigate and manage everything with keyboard shortcuts
 - **Import/Export**: Backup and restore your system as JSON files
 - **Offline Support**: Works offline as a PWA - install it on your device
 - **Privacy-First**: All data stored locally in your browser - no server, no accounts
 - **Responsive Design**: Works on desktop, tablet, and mobile
+
+## Keyboard Shortcuts
+
+| Key | Action |
+|-----|--------|
+| `/` | Focus search |
+| `?` | Open help dialog |
+| `1`-`9` | Switch to system 1-9 (alphabetical order) |
+| `↑` `↓` | Navigate search results |
+| `Enter` | Expand result / focus description |
+| `Esc` | Clear search / close editor / blur field |
+
+### In Description Fields
+
+| Input | Action |
+|-------|--------|
+| `#tag` + Space | Add a tag |
+| `Name [XX]` + Enter | Add an item (e.g., `Router [03]` → `d1.22.03`) |
 
 ## Installation (Without Lovable)
 
@@ -60,11 +80,13 @@ The built files will be in the `dist` folder, ready to be deployed to any static
 
 ## Usage
 
-1. **Create a System**: Start by creating your organizational structure with domains, areas, and categories
-2. **Add Items**: Within categories, add specific items with their Johnny.Decimal IDs
-3. **Search**: Use the search bar to quickly find anything in your system
-4. **Export**: Regularly export your data as a backup (JSON format)
-5. **Import**: Restore from a backup or share systems between devices
+1. **Import a System**: Start by importing your Johnny.Decimal structure as JSON
+2. **Search**: Use the search bar (`/`) to quickly find anything
+3. **Edit**: Click on categories to edit descriptions, tags, and items
+4. **Add Items**: Use the quick-add input or type `Name [XX]` in descriptions
+5. **Add Tags**: Type `#tagname` in descriptions and press Space
+6. **Switch Systems**: Press `1`-`9` to switch between systems alphabetically
+7. **Export**: Regularly export your data as a backup
 
 ## Technology Stack
 
@@ -98,7 +120,7 @@ All data is stored locally in your browser's localStorage. No data is ever sent 
 
 ## License
 
-This project is open source. Feel free to fork, modify, and use as you see fit.
+MIT License - see [LICENSE](LICENSE) for details.
 
 ---
 
