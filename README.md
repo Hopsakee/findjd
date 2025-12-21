@@ -1,73 +1,105 @@
-# Welcome to your Lovable project
+# Johnny Decimal Manager
 
-## Project info
+A progressive web application (PWA) for managing and organizing your digital life using the [Johnny.Decimal](https://johnnydecimal.com/) system.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+## What is Johnny.Decimal?
 
-## How can I edit this code?
+Johnny.Decimal is a system to organize your digital (and physical) life. It provides a structured way to categorize everything using a simple numbering scheme:
 
-There are several ways of editing your application.
+- **Domains** (optional prefix): High-level life areas (e.g., `d1` for Work, `d2` for Personal)
+- **Areas** (10-19, 20-29, etc.): Broad categories within a domain
+- **Categories** (11, 12, 21, 22, etc.): Specific topics within an area
+- **Items** (11.01, 11.02, etc.): Individual items within a category
 
-**Use Lovable**
+## Features
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+- **Hierarchical Organization**: Create and manage domains, areas, categories, and items
+- **Full-Text Search**: Quickly find anything using BM25-powered search
+- **Tag Support**: Add tags to categories and items for additional organization
+- **Import/Export**: Backup and restore your system as JSON files
+- **Offline Support**: Works offline as a PWA - install it on your device
+- **Privacy-First**: All data stored locally in your browser - no server, no accounts
+- **Responsive Design**: Works on desktop, tablet, and mobile
 
-Changes made via Lovable will be committed automatically to this repo.
+## Installation (Without Lovable)
 
-**Use your preferred IDE**
+### Prerequisites
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+- [Node.js](https://nodejs.org/) (v18 or higher)
+- npm, yarn, or bun
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+### Steps
 
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
+```bash
+# Clone the repository
 git clone <YOUR_GIT_URL>
 
-# Step 2: Navigate to the project directory.
+# Navigate to the project directory
 cd <YOUR_PROJECT_NAME>
 
-# Step 3: Install the necessary dependencies.
-npm i
+# Install dependencies
+npm install
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# Start the development server
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+The app will be available at `http://localhost:5173`
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+### Building for Production
 
-**Use GitHub Codespaces**
+```bash
+# Create a production build
+npm run build
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+# Preview the production build locally
+npm run preview
+```
 
-## What technologies are used for this project?
+The built files will be in the `dist` folder, ready to be deployed to any static hosting service (Netlify, Vercel, GitHub Pages, etc.).
 
-This project is built with:
+## Usage
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+1. **Create a System**: Start by creating your organizational structure with domains, areas, and categories
+2. **Add Items**: Within categories, add specific items with their Johnny.Decimal IDs
+3. **Search**: Use the search bar to quickly find anything in your system
+4. **Export**: Regularly export your data as a backup (JSON format)
+5. **Import**: Restore from a backup or share systems between devices
 
-## How can I deploy this project?
+## Technology Stack
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+- [React](https://react.dev/) - UI framework
+- [TypeScript](https://www.typescriptlang.org/) - Type safety
+- [Vite](https://vitejs.dev/) - Build tool
+- [Tailwind CSS](https://tailwindcss.com/) - Styling
+- [shadcn/ui](https://ui.shadcn.com/) - UI components
+- [Zod](https://zod.dev/) - Input validation
 
-## Can I connect a custom domain to my Lovable project?
+## Development Disclaimer
 
-Yes, you can!
+> **⚠️ Important Notice**
+>
+> This project was **vibe-coded** using [Lovable](https://lovable.dev/), an AI-powered development platform. The code was generated through natural language conversations with AI.
+>
+> **Security checks** have been performed using Lovable's built-in security scanning tools, which check for common vulnerabilities including:
+> - Input validation issues
+> - Information leakage
+> - Resource cleanup (memory leaks, blob URLs)
+> - General security best practices
+>
+> However, **the repository owner has not manually reviewed the code line-by-line**. While the AI-generated code has passed automated security checks, users should be aware that:
+> - No manual code audit has been performed
+> - The code is provided as-is without warranty
+> - You are encouraged to review the code yourself before using in production environments
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+## Privacy
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+All data is stored locally in your browser's localStorage. No data is ever sent to any server. You can clear all data at any time through the Help menu.
+
+## License
+
+This project is open source. Feel free to fork, modify, and use as you see fit.
+
+---
+
+Built with ❤️ using [Lovable](https://lovable.dev/)
