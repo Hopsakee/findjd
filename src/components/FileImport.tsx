@@ -3,6 +3,7 @@ import { Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import type { JohnnyDecimalSystem } from '@/types/johnnyDecimal';
+import { validateSystem, validateDomains, MAX_FILE_SIZE } from '@/lib/validation';
 
 interface FileImportProps {
   onImport: (system: JohnnyDecimalSystem) => void;
@@ -12,58 +13,59 @@ export function FileImport({ onImport }: FileImportProps) {
   const [isDragging, setIsDragging] = useState(false);
   const { toast } = useToast();
 
-  const normalizeSystem = (data: any): JohnnyDecimalSystem => {
-    return {
-      name: data.name || 'Unnamed',
-      areas: (data.areas || []).map((area: any) => ({
-        id: area.id || '',
-        name: area.name || '',
-        description: area.description || '',
-        tags: area.tags || [],
-        categories: (area.categories || []).map((cat: any) => ({
-          id: cat.id || '',
-          name: cat.name || '',
-          description: cat.description || '',
-          tags: cat.tags || []
-        }))
-      }))
-    };
-  };
-
   const processFile = useCallback(async (file: File) => {
+    // Check file size
+    if (file.size > MAX_FILE_SIZE) {
+      toast({
+        title: 'File too large',
+        description: 'Maximum file size is 5MB',
+        variant: 'destructive'
+      });
+      return;
+    }
+
     try {
       const text = await file.text();
       const data = JSON.parse(text);
       
       // Handle domains wrapper format
       if (Array.isArray(data.domains)) {
-        data.domains.forEach((domain: any) => {
-          const system = normalizeSystem(domain);
-          onImport(system);
-        });
-        toast({
-          title: 'Systems loaded',
-          description: `Loaded ${data.domains.length} systems`
-        });
+        const result = validateDomains(data);
+        if (result.success) {
+          result.data.forEach(system => onImport(system));
+          toast({
+            title: 'Systems loaded',
+            description: `Loaded ${result.data.length} systems`
+          });
+        } else {
+          toast({
+            title: 'Invalid file format',
+            description: result.error,
+            variant: 'destructive'
+          });
+        }
         return;
       }
 
       // Handle direct system format
-      if (data.name && Array.isArray(data.areas)) {
-        const system = normalizeSystem(data);
-        onImport(system);
+      const result = validateSystem(data);
+      if (result.success) {
+        onImport(result.data);
         toast({
           title: 'System loaded',
-          description: `"${system.name}" with ${system.areas.length} areas`
+          description: `"${result.data.name}" with ${result.data.areas.length} areas`
         });
-        return;
+      } else {
+        toast({
+          title: 'Invalid file format',
+          description: result.error,
+          variant: 'destructive'
+        });
       }
-
-      throw new Error('Invalid format');
     } catch (error) {
       toast({
         title: 'Import failed',
-        description: 'Invalid JSON file format',
+        description: 'Invalid JSON file',
         variant: 'destructive'
       });
     }

@@ -153,12 +153,22 @@ export function useJohnnyDecimal() {
     if (!activeSystem) return;
     const blob = new Blob([JSON.stringify(activeSystem, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${activeSystem.name}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
+    try {
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${activeSystem.name}.json`;
+      a.click();
+    } finally {
+      URL.revokeObjectURL(url);
+    }
   }, [activeSystem]);
+
+  const clearAllData = useCallback(() => {
+    localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(ACTIVE_INDEX_KEY);
+    setSystems([]);
+    setActiveSystemIndex(0);
+  }, []);
 
   return {
     systems,
@@ -171,6 +181,7 @@ export function useJohnnyDecimal() {
     addItem,
     updateItem,
     removeItem,
-    exportSystem
+    exportSystem,
+    clearAllData
   };
 }

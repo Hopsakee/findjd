@@ -7,10 +7,25 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { HelpCircle } from "lucide-react";
+import { HelpCircle, Trash2 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
-export function HelpDialog() {
+interface HelpDialogProps {
+  onClearData?: () => void;
+}
+
+export function HelpDialog({ onClearData }: HelpDialogProps) {
   const exampleJson = `{
   "name": "Work",
   "areas": [
@@ -119,6 +134,46 @@ export function HelpDialog() {
                 <li>Export regularly to save your tag/description edits</li>
                 <li>Install as a PWA for offline desktop use</li>
               </ul>
+            </section>
+
+            <section>
+              <h3 className="font-semibold text-base mb-2">Privacy & Storage</h3>
+              <p className="text-muted-foreground mb-2">
+                Your filing system data is stored locally in your browser. It never leaves your device 
+                unless you explicitly export it.
+              </p>
+              <ul className="list-disc list-inside text-muted-foreground space-y-1 text-xs">
+                <li>Data persists until you clear browser storage</li>
+                <li>On shared devices, others could view your data</li>
+                <li>Consider exporting sensitive systems when not in use</li>
+              </ul>
+              {onClearData && (
+                <div className="mt-3">
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="destructive" size="sm">
+                        <Trash2 className="h-4 w-4 mr-1" />
+                        Clear All Data
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Clear all data?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          This will permanently delete all your stored systems and cannot be undone. 
+                          Make sure to export your data first if you want to keep it.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={onClearData}>
+                          Clear All Data
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
+              )}
             </section>
           </div>
         </ScrollArea>
