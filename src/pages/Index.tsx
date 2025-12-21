@@ -178,6 +178,7 @@ const Index = () => {
                   ref={resultsRef}
                   results={results}
                   focusIndex={focusIndex}
+                  systemName={activeSystem?.name}
                   onFocusChange={setFocusIndex}
                   onUpdateArea={updateArea}
                   onUpdateCategory={updateCategory}
