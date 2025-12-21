@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Plus, X, Pencil, Check } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -7,20 +7,57 @@ import type { Item } from '@/types/johnnyDecimal';
 interface ItemListProps {
   items: Item[];
   categoryId: string;
+  systemPrefix?: string; // e.g., "d1" from system name
   onAdd: (item: Item) => void;
   onUpdate: (itemId: string, updates: Partial<Item>) => void;
   onRemove: (itemId: string) => void;
 }
 
-export function ItemList({ items, categoryId, onAdd, onUpdate, onRemove }: ItemListProps) {
+// Parse "Name [XX]" format and return { name, number } or null
+function parseQuickAdd(input: string): { name: string; number: string } | null {
+  const match = input.trim().match(/^(.+?)\s*\[(\d+)\]$/);
+  if (match) {
+    return { name: match[1].trim(), number: match[2] };
+  }
+  return null;
+}
+
+export function ItemList({ items, categoryId, systemPrefix, onAdd, onUpdate, onRemove }: ItemListProps) {
   const [isAdding, setIsAdding] = useState(false);
   const [newId, setNewId] = useState('');
   const [newName, setNewName] = useState('');
+  const [quickAddValue, setQuickAddValue] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
+  const quickAddRef = useRef<HTMLInputElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
-  // Sort items by name
-  const sortedItems = [...items].sort((a, b) => a.name.localeCompare(b.name));
+  // Sort items by ID numerically
+  const sortedItems = [...items].sort((a, b) => {
+    const aNum = parseInt(a.id.split('.').pop() || '0');
+    const bNum = parseInt(b.id.split('.').pop() || '0');
+    return aNum - bNum;
+  });
+
+  // Keyboard shortcut: 'n' or 'a' to focus quick add when container has focus
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Only trigger if no input is focused
+      const activeEl = document.activeElement;
+      const isInputFocused = activeEl?.tagName === 'INPUT' || activeEl?.tagName === 'TEXTAREA';
+      
+      if (!isInputFocused && (e.key === 'n' || e.key === 'a')) {
+        // Check if this ItemList container or its parent is in view/focused context
+        if (containerRef.current?.closest('[data-item-list-active="true"]')) {
+          e.preventDefault();
+          quickAddRef.current?.focus();
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   const handleAdd = () => {
     if (newId.trim() && newName.trim()) {
@@ -28,6 +65,30 @@ export function ItemList({ items, categoryId, onAdd, onUpdate, onRemove }: ItemL
       setNewId('');
       setNewName('');
       setIsAdding(false);
+    }
+  };
+
+  const handleQuickAdd = () => {
+    const parsed = parseQuickAdd(quickAddValue);
+    if (parsed) {
+      // Build full ID: systemPrefix.categoryId.number (e.g., d1.22.03)
+      const paddedNumber = parsed.number.padStart(2, '0');
+      const fullId = systemPrefix 
+        ? `${systemPrefix}.${categoryId}.${paddedNumber}`
+        : `${categoryId}.${paddedNumber}`;
+      
+      onAdd({ id: fullId, name: parsed.name });
+      setQuickAddValue('');
+    }
+  };
+
+  const handleQuickAddKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleQuickAdd();
+    } else if (e.key === 'Escape') {
+      setQuickAddValue('');
+      (e.target as HTMLInputElement).blur();
     }
   };
 
@@ -66,7 +127,7 @@ export function ItemList({ items, categoryId, onAdd, onUpdate, onRemove }: ItemL
   };
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-2" ref={containerRef}>
       <div className="flex items-center justify-between">
         <label className="text-xs font-medium text-muted-foreground">
           Items
@@ -84,7 +145,31 @@ export function ItemList({ items, categoryId, onAdd, onUpdate, onRemove }: ItemL
         )}
       </div>
 
-      {/* Add new item form */}
+      {/* Quick add input - always visible */}
+      <div className="flex items-center gap-2">
+        <Input
+          ref={quickAddRef}
+          value={quickAddValue}
+          onChange={e => setQuickAddValue(e.target.value)}
+          onKeyDown={handleQuickAddKeyDown}
+          placeholder={`Item name [${String(sortedItems.length + 1).padStart(2, '0')}]`}
+          className="flex-1 h-7 text-xs"
+        />
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleQuickAdd}
+          className="h-7 w-7 p-0"
+          disabled={!parseQuickAdd(quickAddValue)}
+        >
+          <Check className="h-3 w-3" />
+        </Button>
+      </div>
+      <p className="text-[10px] text-muted-foreground">
+        Format: Name [XX] → creates {systemPrefix ? `${systemPrefix}.` : ''}{categoryId}.XX
+      </p>
+
+      {/* Add new item form (manual) */}
       {isAdding && (
         <div className="flex items-center gap-2">
           <Input

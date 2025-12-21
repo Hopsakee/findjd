@@ -8,12 +8,19 @@ import type { SearchResult, Area, Category, Item } from '@/types/johnnyDecimal';
 interface SearchResultsProps {
   results: SearchResult[];
   focusIndex: number;
+  systemName?: string; // e.g., "d1-Prive"
   onFocusChange: (index: number) => void;
   onUpdateArea: (areaId: string, updates: Partial<Pick<Area, 'description' | 'tags'>>) => void;
   onUpdateCategory: (areaId: string, categoryId: string, updates: Partial<Pick<Category, 'description' | 'tags'>>) => void;
   onAddItem: (areaId: string, categoryId: string, item: Item) => void;
   onUpdateItem: (areaId: string, categoryId: string, itemId: string, updates: Partial<Item>) => void;
   onRemoveItem: (areaId: string, categoryId: string, itemId: string) => void;
+}
+
+// Extract prefix from system name (e.g., "d1-Prive" → "d1")
+function extractSystemPrefix(systemName: string): string {
+  const match = systemName.match(/^([a-zA-Z]\d+)/);
+  return match ? match[1] : '';
 }
 
 export interface SearchResultsRef {
@@ -39,7 +46,7 @@ function HighlightText({ text, terms }: { text: string; terms: string[] }) {
   );
 }
 
-export const SearchResults = forwardRef<SearchResultsRef, SearchResultsProps>(({ results, focusIndex, onFocusChange, onUpdateArea, onUpdateCategory, onAddItem, onUpdateItem, onRemoveItem }, ref) => {
+export const SearchResults = forwardRef<SearchResultsRef, SearchResultsProps>(({ results, focusIndex, systemName, onFocusChange, onUpdateArea, onUpdateCategory, onAddItem, onUpdateItem, onRemoveItem }, ref) => {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<(HTMLButtonElement | null)[]>([]);
@@ -230,10 +237,11 @@ export const SearchResults = forwardRef<SearchResultsRef, SearchResultsProps>(({
                   />
                 </div>
                 {result.type === 'category' && (
-                  <div className="pt-2 border-t">
+                  <div className="pt-2 border-t" data-item-list-active="true">
                     <ItemList
                       items={result.category!.items || []}
                       categoryId={result.category!.id}
+                      systemPrefix={systemName ? extractSystemPrefix(systemName) : undefined}
                       onAdd={item => onAddItem(result.area.id, result.category!.id, item)}
                       onUpdate={(itemId, updates) => onUpdateItem(result.area.id, result.category!.id, itemId, updates)}
                       onRemove={itemId => onRemoveItem(result.area.id, result.category!.id, itemId)}

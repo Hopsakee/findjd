@@ -14,6 +14,12 @@ interface SystemTreeProps {
   onRemoveItem: (areaId: string, categoryId: string, itemId: string) => void;
 }
 
+// Extract prefix from system name (e.g., "d1-Prive" → "d1")
+function extractSystemPrefix(systemName: string): string {
+  const match = systemName.match(/^([a-zA-Z]\d+)/);
+  return match ? match[1] : '';
+}
+
 export function SystemTree({ system, onUpdateArea, onUpdateCategory, onAddItem, onUpdateItem, onRemoveItem }: SystemTreeProps) {
   const [expandedAreas, setExpandedAreas] = useState<Set<string>>(new Set());
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -101,10 +107,11 @@ export function SystemTree({ system, onUpdateArea, onUpdateCategory, onAddItem, 
                             tags={category.tags}
                             onChange={tags => onUpdateCategory(area.id, category.id, { tags })}
                           />
-                          <div className="pt-2 border-t">
+                          <div className="pt-2 border-t" data-item-list-active="true">
                             <ItemList
                               items={category.items || []}
                               categoryId={category.id}
+                              systemPrefix={extractSystemPrefix(system.name)}
                               onAdd={item => onAddItem(area.id, category.id, item)}
                               onUpdate={(itemId, updates) => onUpdateItem(area.id, category.id, itemId, updates)}
                               onRemove={itemId => onRemoveItem(area.id, category.id, itemId)}
