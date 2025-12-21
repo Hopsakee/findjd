@@ -33,11 +33,18 @@ const Index = () => {
       .sort((a, b) => a.name.localeCompare(b.name));
   }, [systems]);
 
-  // Keyboard shortcuts: Alt+1-9 to switch systems (alphabetical order)
+  // Keyboard shortcuts: 1-9 to switch systems (alphabetical order)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Check for Alt + number keys 1-9
-      if (e.altKey && e.key >= '1' && e.key <= '9') {
+      // Don't trigger if typing in an input or textarea
+      const target = e.target as HTMLElement;
+      const isEditing = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable;
+      if (isEditing) {
+        return;
+      }
+      
+      // Check for number keys 1-9
+      if (e.key >= '1' && e.key <= '9') {
         const num = parseInt(e.key, 10);
         if (num <= sortedSystemsMap.length) {
           e.preventDefault();
