@@ -3,12 +3,13 @@ import { ChevronRight, Folder, FileText } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { TagInput } from '@/components/TagInput';
 import { ItemList } from '@/components/ItemList';
+import { useDescriptionKeyboard, useContainerNavigation, extractSystemPrefix } from '@/hooks/useKeyboardHandlers';
 import type { SearchResult, Area, Category, Item } from '@/types/johnnyDecimal';
 
 interface SearchResultsProps {
   results: SearchResult[];
   focusIndex: number;
-  systemName?: string; // e.g., "d1-Prive"
+  systemName?: string;
   onFocusChange: (index: number) => void;
   onUpdateArea: (areaId: string, updates: Partial<Pick<Area, 'description' | 'tags'>>) => void;
   onUpdateCategory: (areaId: string, categoryId: string, updates: Partial<Pick<Category, 'description' | 'tags'>>) => void;
@@ -17,28 +18,21 @@ interface SearchResultsProps {
   onRemoveItem: (areaId: string, categoryId: string, itemId: string) => void;
 }
 
-// Extract prefix from system name (e.g., "d1-Prive" → "d1")
-function extractSystemPrefix(systemName: string): string {
-  const match = systemName.match(/^([a-zA-Z]\d+)/);
-  return match ? match[1] : '';
-}
-
 export interface SearchResultsRef {
   focus: () => void;
 }
 
 function HighlightText({ text, terms }: { text: string; terms: string[] }) {
   if (terms.length === 0) return <>{text}</>;
-  
-  // Escape special regex characters and match substrings
+
   const escapedTerms = terms.map(t => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
   const regex = new RegExp(`(${escapedTerms.join('|')})`, 'gi');
   const parts = text.split(regex);
-  
+
   return (
     <>
-      {parts.map((part, i) => 
-        terms.some(t => part.toLowerCase().includes(t.toLowerCase())) 
+      {parts.map((part, i) =>
+        terms.some(t => part.toLowerCase().includes(t.toLowerCase()))
           ? <mark key={i} className="bg-primary/20 text-foreground rounded px-0.5">{part}</mark>
           : part
       )}
@@ -46,17 +40,95 @@ function HighlightText({ text, terms }: { text: string; terms: string[] }) {
   );
 }
 
-export const SearchResults = forwardRef<SearchResultsRef, SearchResultsProps>(({ results, focusIndex, systemName, onFocusChange, onUpdateArea, onUpdateCategory, onAddItem, onUpdateItem, onRemoveItem }, ref) => {
+// Description textarea component with shared keyboard handling
+function ResultDescriptionTextarea({
+  result,
+  systemName,
+  containerRef,
+  descriptionRef,
+  onUpdateArea,
+  onUpdateCategory,
+  onAddItem,
+}: {
+  result: SearchResult;
+  systemName?: string;
+  containerRef: React.RefObject<HTMLDivElement>;
+  descriptionRef: (el: HTMLTextAreaElement | null) => void;
+  onUpdateArea: (areaId: string, updates: Partial<Pick<Area, 'description' | 'tags'>>) => void;
+  onUpdateCategory: (areaId: string, categoryId: string, updates: Partial<Pick<Category, 'description' | 'tags'>>) => void;
+  onAddItem: (areaId: string, categoryId: string, item: Item) => void;
+}) {
+  const isCategory = result.type === 'category';
+  const systemPrefix = systemName ? extractSystemPrefix(systemName) : '';
+  const currentTags = isCategory ? result.category!.tags : result.area.tags;
+  const currentValue = isCategory ? result.category!.description : result.area.description;
+
+  const { handleKeyDown } = useDescriptionKeyboard({
+    onEscape: () => containerRef.current?.focus(),
+    onAddItem: isCategory
+      ? (item) => onAddItem(result.area.id, result.category!.id, item)
+      : undefined,
+    onUpdateDescription: (value) => {
+      if (isCategory) {
+        onUpdateCategory(result.area.id, result.category!.id, { description: value });
+      } else {
+        onUpdateArea(result.area.id, { description: value });
+      }
+    },
+    onAddTag: (tag, newTags) => {
+      if (isCategory) {
+        onUpdateCategory(result.area.id, result.category!.id, { tags: newTags });
+      } else {
+        onUpdateArea(result.area.id, { tags: newTags });
+      }
+    },
+    systemPrefix,
+    categoryId: isCategory ? result.category!.id : '',
+    currentTags,
+    isCategory,
+  });
+
+  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    if (isCategory) {
+      onUpdateCategory(result.area.id, result.category!.id, { description: e.target.value });
+    } else {
+      onUpdateArea(result.area.id, { description: e.target.value });
+    }
+  };
+
+  return (
+    <Textarea
+      ref={descriptionRef}
+      value={currentValue}
+      onChange={handleChange}
+      onKeyDown={handleKeyDown}
+      placeholder={isCategory
+        ? "Add a description... (use #tag to add tags, 'Name [XX]' + Enter to add item)"
+        : "Add a description... (use #tag to add tags)"
+      }
+      className="min-h-[60px] text-sm"
+    />
+  );
+}
+
+export const SearchResults = forwardRef<SearchResultsRef, SearchResultsProps>(({
+  results,
+  focusIndex,
+  systemName,
+  onFocusChange,
+  onUpdateArea,
+  onUpdateCategory,
+  onAddItem,
+  onUpdateItem,
+  onRemoveItem,
+}, ref) => {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const descriptionRefs = useRef<Map<string, HTMLTextAreaElement>>(new Map());
 
-  // Expose focus method to parent
   useImperativeHandle(ref, () => ({
-    focus: () => {
-      containerRef.current?.focus();
-    }
+    focus: () => containerRef.current?.focus(),
   }));
 
   // Scroll focused item into view
@@ -66,146 +138,44 @@ export const SearchResults = forwardRef<SearchResultsRef, SearchResultsProps>(({
     }
   }, [focusIndex]);
 
-  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    // Don't intercept most keys when typing in inputs or textareas
-    const target = e.target as HTMLElement;
-    const isEditing = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA';
-    
-    // Allow Escape to work even in editing mode (blur the field)
-    if (e.key === 'Escape') {
-      e.preventDefault();
-      if (isEditing) {
-        (target as HTMLInputElement | HTMLTextAreaElement).blur();
-      } else if (expandedId) {
-        setExpandedId(null);
-        containerRef.current?.focus();
-      }
-      return;
-    }
-    
-    // Don't intercept other keys when editing
-    if (isEditing) return;
+  const getItemId = useCallback((index: number) => {
+    const result = results[index];
+    return result.type === 'area'
+      ? `area-${result.area.id}`
+      : `cat-${result.area.id}-${result.category!.id}`;
+  }, [results]);
 
-    if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      onFocusChange(Math.min(focusIndex + 1, results.length - 1));
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      onFocusChange(Math.max(focusIndex - 1, 0));
-    } else if (e.key === 'Enter' && focusIndex >= 0) {
-      e.preventDefault();
-      const result = results[focusIndex];
-      const id = result.type === 'area' 
-        ? `area-${result.area.id}` 
-        : `cat-${result.area.id}-${result.category!.id}`;
-      
-      if (expandedId === id) {
-        // Already expanded - focus the description field
-        const textarea = descriptionRefs.current.get(id);
-        if (textarea) {
-          textarea.focus();
-        }
-      } else {
-        // Expand the item
-        setExpandedId(id);
-      }
+  const handleFocusTextarea = useCallback((id: string) => {
+    const textarea = descriptionRefs.current.get(id);
+    if (textarea) {
+      textarea.focus();
     }
-  }, [focusIndex, results, onFocusChange, expandedId]);
+  }, []);
 
-  // Handle description change - just update the value
-  const handleDescriptionChange = useCallback((
-    value: string,
-    result: SearchResult
-  ) => {
-    if (result.type === 'area') {
-      onUpdateArea(result.area.id, { description: value });
-    } else {
-      onUpdateCategory(result.area.id, result.category!.id, { description: value });
-    }
-  }, [onUpdateArea, onUpdateCategory]);
-
-  // Extract hashtags on space/enter/tab, and items on enter with format "Name [XX]"
-  const handleDescriptionKeyDown = useCallback((
-    e: React.KeyboardEvent<HTMLTextAreaElement>,
-    result: SearchResult
-  ) => {
-    const textarea = e.currentTarget;
-
-    if (e.key === 'Escape') {
-      e.preventDefault();
-      e.stopPropagation();
-      textarea.blur();
-      containerRef.current?.focus();
-      return;
-    }
-
-    const value = textarea.value;
-    const cursorPos = textarea.selectionStart;
-    const textBeforeCursor = value.substring(0, cursorPos);
-
-    // On Enter, check for item pattern "Name [XX]" on the current line (only for categories)
-    if (e.key === 'Enter' && result.type === 'category') {
-      // Get the current line (text from last newline to cursor)
-      const lastNewline = textBeforeCursor.lastIndexOf('\n');
-      const currentLine = textBeforeCursor.substring(lastNewline + 1);
-      const itemMatch = currentLine.match(/^(.+?)\s*\[(\d+)\]$/);
-      
-      if (itemMatch) {
-        e.preventDefault();
-        const itemName = itemMatch[1].trim();
-        const itemNumber = itemMatch[2].padStart(2, '0');
-        const prefix = systemName ? extractSystemPrefix(systemName) : '';
-        const fullId = prefix 
-          ? `${prefix}.${result.category!.id}.${itemNumber}`
-          : `${result.category!.id}.${itemNumber}`;
-        
-        // Add the item
-        onAddItem(result.area.id, result.category!.id, { id: fullId, name: itemName });
-        
-        // Remove the line from description
-        const newValue = value.substring(0, lastNewline + 1) + value.substring(cursorPos);
-        onUpdateCategory(result.area.id, result.category!.id, { description: newValue.trim() });
-        return;
-      }
-    }
-    
-    // Check for hashtags on space/enter/tab
-    if (e.key === ' ' || e.key === 'Enter' || e.key === 'Tab') {
-      const hashtagRegex = /#(\w+)$/;
-      const match = textBeforeCursor.match(hashtagRegex);
-      
-      if (match) {
-        e.preventDefault();
-        const tag = match[1];
-        const currentTags = result.type === 'area' ? result.area.tags : result.category!.tags;
-        
-        // Remove the hashtag from description
-        const newValue = value.substring(0, cursorPos - match[0].length) + value.substring(cursorPos);
-        
-        // Add tag if not duplicate
-        const newTags = currentTags.includes(tag) ? currentTags : [...currentTags, tag];
-        
-        if (result.type === 'area') {
-          onUpdateArea(result.area.id, { description: newValue.trim(), tags: newTags });
-        } else {
-          onUpdateCategory(result.area.id, result.category!.id, { description: newValue.trim(), tags: newTags });
-        }
-      }
-    }
-  }, [onUpdateArea, onUpdateCategory, onAddItem, systemName]);
+  const { handleKeyDown } = useContainerNavigation({
+    itemCount: results.length,
+    focusIndex,
+    onFocusChange,
+    expandedId,
+    onToggleExpand: setExpandedId,
+    getItemId,
+    onFocusTextarea: handleFocusTextarea,
+  });
 
   if (results.length === 0) return null;
 
+  const systemPrefix = systemName ? extractSystemPrefix(systemName) : undefined;
+
   return (
-    <div 
+    <div
       ref={containerRef}
-      className="space-y-2 outline-none" 
+      className="space-y-2 outline-none"
       tabIndex={0}
       onKeyDown={handleKeyDown}
     >
       {results.map((result, idx) => {
-        const id = result.type === 'area' 
-          ? `area-${result.area.id}` 
+        const id = result.type === 'area'
+          ? `area-${result.area.id}`
           : `cat-${result.area.id}-${result.category!.id}`;
         const isExpanded = expandedId === id;
         const isFocused = focusIndex === idx;
@@ -221,7 +191,7 @@ export const SearchResults = forwardRef<SearchResultsRef, SearchResultsProps>(({
               className="w-full px-4 py-3 flex items-center gap-3 text-left hover:bg-muted/50 transition-colors"
             >
               <ChevronRight className={`h-4 w-4 text-muted-foreground transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
-              
+
               {result.type === 'area' ? (
                 <Folder className="h-4 w-4 text-primary" />
               ) : (
@@ -234,9 +204,9 @@ export const SearchResults = forwardRef<SearchResultsRef, SearchResultsProps>(({
                     {result.type === 'area' ? result.area.id : `${result.area.id} › ${result.category!.id}`}
                   </span>
                   <span className="font-medium truncate">
-                    <HighlightText 
-                      text={result.type === 'area' ? result.area.name : result.category!.name} 
-                      terms={result.matchedTerms} 
+                    <HighlightText
+                      text={result.type === 'area' ? result.area.name : result.category!.name}
+                      terms={result.matchedTerms}
                     />
                   </span>
                 </div>
@@ -258,15 +228,16 @@ export const SearchResults = forwardRef<SearchResultsRef, SearchResultsProps>(({
                   <label className="text-xs font-medium text-muted-foreground mb-1 block">
                     Description
                   </label>
-                  <Textarea
-                    ref={el => {
+                  <ResultDescriptionTextarea
+                    result={result}
+                    systemName={systemName}
+                    containerRef={containerRef as React.RefObject<HTMLDivElement>}
+                    descriptionRef={(el) => {
                       if (el) descriptionRefs.current.set(id, el);
                     }}
-                    value={result.type === 'area' ? result.area.description : result.category!.description}
-                    onChange={e => handleDescriptionChange(e.target.value, result)}
-                    onKeyDown={e => handleDescriptionKeyDown(e, result)}
-                    placeholder="Add a description... (use #tag to add tags)"
-                    className="min-h-[60px] text-sm"
+                    onUpdateArea={onUpdateArea}
+                    onUpdateCategory={onUpdateCategory}
+                    onAddItem={onAddItem}
                   />
                 </div>
                 <div>
@@ -289,7 +260,7 @@ export const SearchResults = forwardRef<SearchResultsRef, SearchResultsProps>(({
                     <ItemList
                       items={result.category!.items || []}
                       categoryId={result.category!.id}
-                      systemPrefix={systemName ? extractSystemPrefix(systemName) : undefined}
+                      systemPrefix={systemPrefix}
                       onAdd={item => onAddItem(result.area.id, result.category!.id, item)}
                       onUpdate={(itemId, updates) => onUpdateItem(result.area.id, result.category!.id, itemId, updates)}
                       onRemove={itemId => onRemoveItem(result.area.id, result.category!.id, itemId)}

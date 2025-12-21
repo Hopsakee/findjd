@@ -1,8 +1,9 @@
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
 import { ChevronRight, Folder, FileText } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { TagInput } from '@/components/TagInput';
 import { ItemList } from '@/components/ItemList';
+import { useDescriptionKeyboard, extractSystemPrefix } from '@/hooks/useKeyboardHandlers';
 import type { JohnnyDecimalSystem, Area, Category, Item } from '@/types/johnnyDecimal';
 
 interface SystemTreeProps {
@@ -14,10 +15,68 @@ interface SystemTreeProps {
   onRemoveItem: (areaId: string, categoryId: string, itemId: string) => void;
 }
 
-// Extract prefix from system name (e.g., "d1-Prive" → "d1")
-function extractSystemPrefix(systemName: string): string {
-  const match = systemName.match(/^([a-zA-Z]\d+)/);
-  return match ? match[1] : '';
+// Component for area description textarea with keyboard handling
+function AreaDescriptionTextarea({
+  area,
+  onUpdateArea,
+  onClose,
+}: {
+  area: Area;
+  onUpdateArea: (areaId: string, updates: Partial<Pick<Area, 'description' | 'tags'>>) => void;
+  onClose: () => void;
+}) {
+  const { handleKeyDown } = useDescriptionKeyboard({
+    onEscape: onClose,
+    isCategory: false,
+  });
+
+  return (
+    <Textarea
+      value={area.description}
+      onChange={e => onUpdateArea(area.id, { description: e.target.value })}
+      onKeyDown={handleKeyDown}
+      placeholder="Area description..."
+      className="min-h-[50px] text-sm"
+    />
+  );
+}
+
+// Component for category description textarea with keyboard handling
+function CategoryDescriptionTextarea({
+  areaId,
+  category,
+  systemName,
+  onUpdateCategory,
+  onAddItem,
+  onClose,
+}: {
+  areaId: string;
+  category: Category;
+  systemName: string;
+  onUpdateCategory: (areaId: string, categoryId: string, updates: Partial<Pick<Category, 'description' | 'tags'>>) => void;
+  onAddItem: (areaId: string, categoryId: string, item: Item) => void;
+  onClose: () => void;
+}) {
+  const systemPrefix = extractSystemPrefix(systemName);
+
+  const { handleKeyDown } = useDescriptionKeyboard({
+    onEscape: onClose,
+    onAddItem: (item) => onAddItem(areaId, category.id, item),
+    onUpdateDescription: (value) => onUpdateCategory(areaId, category.id, { description: value }),
+    systemPrefix,
+    categoryId: category.id,
+    isCategory: true,
+  });
+
+  return (
+    <Textarea
+      value={category.description}
+      onChange={e => onUpdateCategory(areaId, category.id, { description: e.target.value })}
+      onKeyDown={handleKeyDown}
+      placeholder="Category description... (type 'Name [XX]' + Enter to add item)"
+      className="min-h-[50px] text-sm"
+    />
+  );
 }
 
 export function SystemTree({ system, onUpdateArea, onUpdateCategory, onAddItem, onUpdateItem, onRemoveItem }: SystemTreeProps) {
@@ -36,47 +95,7 @@ export function SystemTree({ system, onUpdateArea, onUpdateCategory, onAddItem, 
     });
   };
 
-  // Handle keydown in category description - parse "Name [XX]" to add items
-  const handleCategoryDescriptionKeyDown = useCallback((
-    e: React.KeyboardEvent<HTMLTextAreaElement>,
-    areaId: string,
-    category: Category
-  ) => {
-    if (e.key === 'Escape') {
-      e.preventDefault();
-      e.stopPropagation();
-      setEditingId(null);
-      return;
-    }
-
-    if (e.key === 'Enter') {
-      const textarea = e.currentTarget;
-      const value = textarea.value;
-      const cursorPos = textarea.selectionStart;
-      const textBeforeCursor = value.substring(0, cursorPos);
-
-      // Get the current line (text from last newline to cursor)
-      const lastNewline = textBeforeCursor.lastIndexOf('\n');
-      const currentLine = textBeforeCursor.substring(lastNewline + 1);
-      const itemMatch = currentLine.match(/^(.+?)\s*\[(\d+)\]$/);
-
-      if (itemMatch) {
-        e.preventDefault();
-        const itemName = itemMatch[1].trim();
-        const itemNumber = itemMatch[2].padStart(2, '0');
-        const prefix = extractSystemPrefix(system.name);
-        const fullId = prefix
-          ? `${prefix}.${category.id}.${itemNumber}`
-          : `${category.id}.${itemNumber}`;
-
-        onAddItem(areaId, category.id, { id: fullId, name: itemName });
-
-        // Remove the line from description
-        const newValue = value.substring(0, lastNewline + 1) + value.substring(cursorPos);
-        onUpdateCategory(areaId, category.id, { description: newValue.replace(/\s+$/g, '') });
-      }
-    }
-  }, [system.name, onAddItem, onUpdateCategory]);
+  const systemPrefix = extractSystemPrefix(system.name);
 
   return (
     <div className="space-y-1">
@@ -108,18 +127,10 @@ export function SystemTree({ system, onUpdateArea, onUpdateCategory, onAddItem, 
                   </button>
                   {isEditing && (
                     <div className="mt-2 space-y-2">
-                      <Textarea
-                        value={area.description}
-                        onChange={e => onUpdateArea(area.id, { description: e.target.value })}
-                        onKeyDown={e => {
-                          if (e.key === 'Escape') {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            setEditingId(null);
-                          }
-                        }}
-                        placeholder="Area description..."
-                        className="min-h-[50px] text-sm"
+                      <AreaDescriptionTextarea
+                        area={area}
+                        onUpdateArea={onUpdateArea}
+                        onClose={() => setEditingId(null)}
                       />
                       <TagInput
                         tags={area.tags}
@@ -146,12 +157,13 @@ export function SystemTree({ system, onUpdateArea, onUpdateCategory, onAddItem, 
 
                       {isCatEditing && (
                         <div className="px-4 py-2 pl-12 bg-muted/30 space-y-2">
-                          <Textarea
-                            value={category.description}
-                            onChange={e => onUpdateCategory(area.id, category.id, { description: e.target.value })}
-                            onKeyDown={e => handleCategoryDescriptionKeyDown(e, area.id, category)}
-                            placeholder="Category description... (type 'Name [XX]' + Enter to add item)"
-                            className="min-h-[50px] text-sm"
+                          <CategoryDescriptionTextarea
+                            areaId={area.id}
+                            category={category}
+                            systemName={system.name}
+                            onUpdateCategory={onUpdateCategory}
+                            onAddItem={onAddItem}
+                            onClose={() => setEditingId(null)}
                           />
                           <TagInput
                             tags={category.tags}
@@ -161,7 +173,7 @@ export function SystemTree({ system, onUpdateArea, onUpdateCategory, onAddItem, 
                             <ItemList
                               items={category.items || []}
                               categoryId={category.id}
-                              systemPrefix={extractSystemPrefix(system.name)}
+                              systemPrefix={systemPrefix}
                               onAdd={item => onAddItem(area.id, category.id, item)}
                               onUpdate={(itemId, updates) => onUpdateItem(area.id, category.id, itemId, updates)}
                               onRemove={itemId => onRemoveItem(area.id, category.id, itemId)}
