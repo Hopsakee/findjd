@@ -42,32 +42,38 @@ export function SystemTree({ system, onUpdateArea, onUpdateCategory, onAddItem, 
     areaId: string,
     category: Category
   ) => {
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      e.stopPropagation();
+      setEditingId(null);
+      return;
+    }
+
     if (e.key === 'Enter') {
       const textarea = e.currentTarget;
       const value = textarea.value;
       const cursorPos = textarea.selectionStart;
       const textBeforeCursor = value.substring(0, cursorPos);
-      
+
       // Get the current line (text from last newline to cursor)
       const lastNewline = textBeforeCursor.lastIndexOf('\n');
       const currentLine = textBeforeCursor.substring(lastNewline + 1);
       const itemMatch = currentLine.match(/^(.+?)\s*\[(\d+)\]$/);
-      
+
       if (itemMatch) {
         e.preventDefault();
         const itemName = itemMatch[1].trim();
         const itemNumber = itemMatch[2].padStart(2, '0');
         const prefix = extractSystemPrefix(system.name);
-        const fullId = prefix 
+        const fullId = prefix
           ? `${prefix}.${category.id}.${itemNumber}`
           : `${category.id}.${itemNumber}`;
-        
-        // Add the item
+
         onAddItem(areaId, category.id, { id: fullId, name: itemName });
-        
+
         // Remove the line from description
         const newValue = value.substring(0, lastNewline + 1) + value.substring(cursorPos);
-        onUpdateCategory(areaId, category.id, { description: newValue.trim() });
+        onUpdateCategory(areaId, category.id, { description: newValue.replace(/\s+$/g, '') });
       }
     }
   }, [system.name, onAddItem, onUpdateCategory]);
@@ -105,6 +111,13 @@ export function SystemTree({ system, onUpdateArea, onUpdateCategory, onAddItem, 
                       <Textarea
                         value={area.description}
                         onChange={e => onUpdateArea(area.id, { description: e.target.value })}
+                        onKeyDown={e => {
+                          if (e.key === 'Escape') {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setEditingId(null);
+                          }
+                        }}
                         placeholder="Area description..."
                         className="min-h-[50px] text-sm"
                       />

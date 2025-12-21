@@ -130,10 +130,19 @@ export const SearchResults = forwardRef<SearchResultsRef, SearchResultsProps>(({
     result: SearchResult
   ) => {
     const textarea = e.currentTarget;
+
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      e.stopPropagation();
+      textarea.blur();
+      containerRef.current?.focus();
+      return;
+    }
+
     const value = textarea.value;
     const cursorPos = textarea.selectionStart;
     const textBeforeCursor = value.substring(0, cursorPos);
-    
+
     // On Enter, check for item pattern "Name [XX]" on the current line (only for categories)
     if (e.key === 'Enter' && result.type === 'category') {
       // Get the current line (text from last newline to cursor)
