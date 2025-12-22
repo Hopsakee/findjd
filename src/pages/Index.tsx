@@ -27,6 +27,7 @@ const Index = () => {
     updateArea,
     updateCategory,
     addCategory,
+    removeCategory,
     addItem,
     updateItem,
     removeItem,
@@ -184,6 +185,7 @@ const Index = () => {
                   onUpdateArea={updateArea}
                   onUpdateCategory={updateCategory}
                   onAddCategory={addCategory}
+                  onRemoveCategory={removeCategory}
                   onAddItem={addItem}
                   onUpdateItem={updateItem}
                   onRemoveItem={removeItem}
@@ -195,6 +197,7 @@ const Index = () => {
                 onUpdateArea={updateArea}
                 onUpdateCategory={updateCategory}
                 onAddCategory={addCategory}
+                onRemoveCategory={removeCategory}
                 onAddItem={addItem}
                 onUpdateItem={updateItem}
                 onRemoveItem={removeItem}

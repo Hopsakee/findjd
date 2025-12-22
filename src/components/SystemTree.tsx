@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ChevronRight, Folder, FileText } from 'lucide-react';
+import { ChevronRight, Folder, FileText, X } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { TagInput } from '@/components/TagInput';
 import { ItemList } from '@/components/ItemList';
@@ -11,6 +11,7 @@ interface SystemTreeProps {
   onUpdateArea: (areaId: string, updates: Partial<Pick<Area, 'description' | 'tags'>>) => void;
   onUpdateCategory: (areaId: string, categoryId: string, updates: Partial<Pick<Category, 'description' | 'tags'>>) => void;
   onAddCategory: (areaId: string, category: Category) => void;
+  onRemoveCategory: (areaId: string, categoryId: string) => void;
   onAddItem: (areaId: string, categoryId: string, item: Item) => void;
   onUpdateItem: (areaId: string, categoryId: string, itemId: string, updates: Partial<Item>) => void;
   onRemoveItem: (areaId: string, categoryId: string, itemId: string) => void;
@@ -85,7 +86,7 @@ function CategoryDescriptionTextarea({
   );
 }
 
-export function SystemTree({ system, onUpdateArea, onUpdateCategory, onAddCategory, onAddItem, onUpdateItem, onRemoveItem }: SystemTreeProps) {
+export function SystemTree({ system, onUpdateArea, onUpdateCategory, onAddCategory, onRemoveCategory, onAddItem, onUpdateItem, onRemoveItem }: SystemTreeProps) {
   const [expandedAreas, setExpandedAreas] = useState<Set<string>>(new Set());
   const [editingId, setEditingId] = useState<string | null>(null);
 
@@ -152,15 +153,24 @@ export function SystemTree({ system, onUpdateArea, onUpdateCategory, onAddCatego
                   const isCatEditing = editingId === `cat-${area.id}-${category.id}`;
 
                   return (
-                    <div key={category.id} className="border-b last:border-b-0">
-                      <button
-                        onClick={() => setEditingId(isCatEditing ? null : `cat-${area.id}-${category.id}`)}
-                        className="w-full px-4 py-2 pl-12 flex items-center gap-3 text-left hover:bg-muted/50 transition-colors"
-                      >
-                        <FileText className="h-4 w-4 text-muted-foreground" />
-                        <span className="font-mono text-xs text-muted-foreground">{category.id}</span>
-                        <span className="text-sm">{category.name}</span>
-                      </button>
+                    <div key={category.id} className="border-b last:border-b-0 group/category">
+                      <div className="flex items-center">
+                        <button
+                          onClick={() => setEditingId(isCatEditing ? null : `cat-${area.id}-${category.id}`)}
+                          className="flex-1 px-4 py-2 pl-12 flex items-center gap-3 text-left hover:bg-muted/50 transition-colors"
+                        >
+                          <FileText className="h-4 w-4 text-muted-foreground" />
+                          <span className="font-mono text-xs text-muted-foreground">{category.id}</span>
+                          <span className="text-sm">{category.name}</span>
+                        </button>
+                        <button
+                          onClick={() => onRemoveCategory(area.id, category.id)}
+                          className="opacity-0 group-hover/category:opacity-100 p-2 mr-2 hover:text-destructive text-muted-foreground transition-opacity"
+                          title="Delete category"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
 
                       {isCatEditing && (
                         <div className="px-4 py-2 pl-12 bg-muted/30 space-y-2">
