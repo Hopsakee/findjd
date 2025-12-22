@@ -13,6 +13,7 @@ interface SearchResultsProps {
   onFocusChange: (index: number) => void;
   onUpdateArea: (areaId: string, updates: Partial<Pick<Area, 'description' | 'tags'>>) => void;
   onUpdateCategory: (areaId: string, categoryId: string, updates: Partial<Pick<Category, 'description' | 'tags'>>) => void;
+  onAddCategory: (areaId: string, category: Category) => void;
   onAddItem: (areaId: string, categoryId: string, item: Item) => void;
   onUpdateItem: (areaId: string, categoryId: string, itemId: string, updates: Partial<Item>) => void;
   onRemoveItem: (areaId: string, categoryId: string, itemId: string) => void;
@@ -48,6 +49,7 @@ function ResultDescriptionTextarea({
   descriptionRef,
   onUpdateArea,
   onUpdateCategory,
+  onAddCategory,
   onAddItem,
 }: {
   result: SearchResult;
@@ -56,9 +58,11 @@ function ResultDescriptionTextarea({
   descriptionRef: (el: HTMLTextAreaElement | null) => void;
   onUpdateArea: (areaId: string, updates: Partial<Pick<Area, 'description' | 'tags'>>) => void;
   onUpdateCategory: (areaId: string, categoryId: string, updates: Partial<Pick<Category, 'description' | 'tags'>>) => void;
+  onAddCategory: (areaId: string, category: Category) => void;
   onAddItem: (areaId: string, categoryId: string, item: Item) => void;
 }) {
   const isCategory = result.type === 'category';
+  const isArea = result.type === 'area';
   const systemPrefix = systemName ? extractSystemPrefix(systemName) : '';
   const currentTags = isCategory ? result.category!.tags : result.area.tags;
   const currentValue = isCategory ? result.category!.description : result.area.description;
@@ -67,6 +71,9 @@ function ResultDescriptionTextarea({
     onEscape: () => containerRef.current?.focus(),
     onAddItem: isCategory
       ? (item) => onAddItem(result.area.id, result.category!.id, item)
+      : undefined,
+    onAddCategory: isArea
+      ? (category) => onAddCategory(result.area.id, category)
       : undefined,
     onUpdateDescription: (value) => {
       if (isCategory) {
@@ -84,8 +91,10 @@ function ResultDescriptionTextarea({
     },
     systemPrefix,
     categoryId: isCategory ? result.category!.id : '',
+    areaId: isArea ? result.area.id : '',
     currentTags,
     isCategory,
+    isArea,
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -104,7 +113,7 @@ function ResultDescriptionTextarea({
       onKeyDown={handleKeyDown}
       placeholder={isCategory
         ? "Add a description... (use #tag to add tags, 'Name [XX]' + Enter to add item)"
-        : "Add a description... (use #tag to add tags)"
+        : "Add a description... (use #tag to add tags, 'Name [XX]' + Enter to add category)"
       }
       className="min-h-[60px] text-sm"
     />
@@ -118,6 +127,7 @@ export const SearchResults = forwardRef<SearchResultsRef, SearchResultsProps>(({
   onFocusChange,
   onUpdateArea,
   onUpdateCategory,
+  onAddCategory,
   onAddItem,
   onUpdateItem,
   onRemoveItem,
@@ -237,6 +247,7 @@ export const SearchResults = forwardRef<SearchResultsRef, SearchResultsProps>(({
                     }}
                     onUpdateArea={onUpdateArea}
                     onUpdateCategory={onUpdateCategory}
+                    onAddCategory={onAddCategory}
                     onAddItem={onAddItem}
                   />
                 </div>
