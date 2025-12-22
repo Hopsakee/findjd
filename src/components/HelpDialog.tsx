@@ -124,24 +124,24 @@ export function HelpDialog({ onClearData }: HelpDialogProps) {
                   <h4 className="text-xs font-medium text-muted-foreground mb-1">In Description Fields</h4>
                   <ul className="text-muted-foreground space-y-1">
                     <li><code className="px-1 bg-muted rounded text-xs">#tag</code> + <kbd className="px-1.5 py-0.5 bg-muted rounded text-xs">Space</kbd> Add a tag</li>
-                    <li><code className="px-1 bg-muted rounded text-xs">Name [XX]</code> + <kbd className="px-1.5 py-0.5 bg-muted rounded text-xs">Enter</kbd> Add an item (categories only)</li>
+                    <li><code className="px-1 bg-muted rounded text-xs">Name [XX]</code> + <kbd className="px-1.5 py-0.5 bg-muted rounded text-xs">Enter</kbd> Add category (in area) or item (in category)</li>
                   </ul>
                 </div>
               </div>
             </section>
 
             <section>
-              <h3 className="font-semibold text-base mb-2">Adding Items</h3>
+              <h3 className="font-semibold text-base mb-2">Quick-Add via Description</h3>
               <p className="text-muted-foreground mb-2">
-                There are two ways to add items to a category:
+                Add categories or items by typing directly in a description field:
               </p>
               <ul className="list-disc list-inside text-muted-foreground space-y-1">
-                <li><strong>Quick add input:</strong> Use the "Item name [XX]" input below the Items section</li>
-                <li><strong>In description:</strong> Type <code className="px-1 bg-muted rounded text-xs">My Item [03]</code> and press Enter</li>
+                <li><strong>Add category:</strong> In an area description, type <code className="px-1 bg-muted rounded text-xs">Python [52]</code> + Enter → creates category "52 Python"</li>
+                <li><strong>Add item:</strong> In a category description, type <code className="px-1 bg-muted rounded text-xs">Router [03]</code> + Enter → creates item with full ID</li>
               </ul>
               <p className="text-muted-foreground mt-2 text-xs">
-                The full ID is built automatically from your system prefix and category. 
-                For example, typing "Router [03]" in category 22 of system "d1-Work" creates item "d1.22.03".
+                The ID is built automatically: for items, from system prefix + category ID + number. 
+                For categories, the two-digit number becomes the category ID.
               </p>
             </section>
 
