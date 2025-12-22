@@ -149,6 +149,27 @@ export function useJohnnyDecimal() {
     }));
   }, [activeSystemIndex]);
 
+  const addCategory = useCallback((areaId: string, category: Category) => {
+    setSystems(prev => prev.map((system, idx) => {
+      if (idx !== activeSystemIndex) return system;
+      return {
+        ...system,
+        areas: system.areas.map(area => {
+          if (area.id !== areaId) return area;
+          // Check if category ID already exists
+          if (area.categories.some(cat => cat.id === category.id)) {
+            return area;
+          }
+          // Insert in sorted order by ID
+          const newCategories = [...area.categories, category].sort((a, b) => 
+            a.id.localeCompare(b.id)
+          );
+          return { ...area, categories: newCategories };
+        })
+      };
+    }));
+  }, [activeSystemIndex]);
+
   const exportSystem = useCallback(() => {
     if (!activeSystem) return;
     const blob = new Blob([JSON.stringify(activeSystem, null, 2)], { type: 'application/json' });
@@ -178,6 +199,7 @@ export function useJohnnyDecimal() {
     loadSystem,
     updateArea,
     updateCategory,
+    addCategory,
     addItem,
     updateItem,
     removeItem,
