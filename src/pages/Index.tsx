@@ -183,6 +183,7 @@ const Index = () => {
                   onFocusChange={setFocusIndex}
                   onUpdateArea={updateArea}
                   onUpdateCategory={updateCategory}
+                  onAddCategory={addCategory}
                   onAddItem={addItem}
                   onUpdateItem={updateItem}
                   onRemoveItem={removeItem}
