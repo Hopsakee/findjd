@@ -26,7 +26,6 @@ const Index = () => {
     loadSystem,
     updateArea,
     updateCategory,
-    addCategory,
     addItem,
     updateItem,
     removeItem,
@@ -193,7 +192,6 @@ const Index = () => {
                 system={activeSystem}
                 onUpdateArea={updateArea}
                 onUpdateCategory={updateCategory}
-                onAddCategory={addCategory}
                 onAddItem={addItem}
                 onUpdateItem={updateItem}
                 onRemoveItem={removeItem}
