@@ -1,15 +1,16 @@
 import { useState } from 'react';
-import { ChevronRight, Folder, FileText, X } from 'lucide-react';
+import { ChevronRight, Folder, FileText, X, Pencil } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
 import { TagInput } from '@/components/TagInput';
 import { ItemList } from '@/components/ItemList';
-import { useDescriptionKeyboard, extractSystemPrefix } from '@/hooks/useKeyboardHandlers';
+import { useDescriptionKeyboard, extractSystemPrefix, useInputKeyboard } from '@/hooks/useKeyboardHandlers';
 import type { JohnnyDecimalSystem, Area, Category, Item } from '@/types/johnnyDecimal';
 
 interface SystemTreeProps {
   system: JohnnyDecimalSystem;
-  onUpdateArea: (areaId: string, updates: Partial<Pick<Area, 'description' | 'tags'>>) => void;
-  onUpdateCategory: (areaId: string, categoryId: string, updates: Partial<Pick<Category, 'description' | 'tags'>>) => void;
+  onUpdateArea: (areaId: string, updates: Partial<Pick<Area, 'name' | 'description' | 'tags'>>) => void;
+  onUpdateCategory: (areaId: string, categoryId: string, updates: Partial<Pick<Category, 'name' | 'description' | 'tags'>>) => void;
   onAddCategory: (areaId: string, category: Category) => void;
   onRemoveCategory: (areaId: string, categoryId: string) => void;
   onAddItem: (areaId: string, categoryId: string, item: Item) => void;
@@ -89,6 +90,8 @@ function CategoryDescriptionTextarea({
 export function SystemTree({ system, onUpdateArea, onUpdateCategory, onAddCategory, onRemoveCategory, onAddItem, onUpdateItem, onRemoveItem }: SystemTreeProps) {
   const [expandedAreas, setExpandedAreas] = useState<Set<string>>(new Set());
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [renamingId, setRenamingId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState('');
 
   const toggleArea = (areaId: string) => {
     setExpandedAreas(prev => {
@@ -104,23 +107,87 @@ export function SystemTree({ system, onUpdateArea, onUpdateCategory, onAddCatego
 
   const systemPrefix = extractSystemPrefix(system.name);
 
+  // Rename handlers
+  const startRenameArea = (area: Area) => {
+    setRenamingId(`area-${area.id}`);
+    setRenameValue(area.name);
+  };
+
+  const startRenameCategory = (areaId: string, category: Category) => {
+    setRenamingId(`cat-${areaId}-${category.id}`);
+    setRenameValue(category.name);
+  };
+
+  const saveRename = () => {
+    if (!renamingId || !renameValue.trim()) {
+      setRenamingId(null);
+      setRenameValue('');
+      return;
+    }
+    
+    if (renamingId.startsWith('area-')) {
+      const areaId = renamingId.replace('area-', '');
+      onUpdateArea(areaId, { name: renameValue.trim() });
+    } else if (renamingId.startsWith('cat-')) {
+      const parts = renamingId.split('-');
+      const areaId = parts[1];
+      const categoryId = parts.slice(2).join('-');
+      onUpdateCategory(areaId, categoryId, { name: renameValue.trim() });
+    }
+    
+    setRenamingId(null);
+    setRenameValue('');
+  };
+
+  const { handleKeyDown: renameKeyDown } = useInputKeyboard({
+    onSubmit: saveRename,
+    onCancel: () => {
+      setRenamingId(null);
+      setRenameValue('');
+    },
+  });
+
   return (
     <div className="space-y-1">
       {system.areas.map(area => {
         const isExpanded = expandedAreas.has(area.id);
         const isEditing = editingId === `area-${area.id}`;
+        const isRenamingArea = renamingId === `area-${area.id}`;
 
         return (
-          <div key={area.id} className="border rounded-lg overflow-hidden bg-card">
-            <button
-              onClick={() => toggleArea(area.id)}
-              className="w-full px-4 py-3 flex items-center gap-3 text-left hover:bg-muted/50 transition-colors"
-            >
-              <ChevronRight className={`h-4 w-4 text-muted-foreground transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
-              <Folder className="h-4 w-4 text-primary" />
-              <span className="font-mono text-sm text-muted-foreground">{area.id}</span>
-              <span className="font-medium text-sm">{area.name}</span>
-            </button>
+          <div key={area.id} className="border rounded-lg overflow-hidden bg-card group/area">
+            <div className="flex items-center">
+              <button
+                onClick={() => toggleArea(area.id)}
+                className="flex-1 px-4 py-3 flex items-center gap-3 text-left hover:bg-muted/50 transition-colors"
+              >
+                <ChevronRight className={`h-4 w-4 text-muted-foreground transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
+                <Folder className="h-4 w-4 text-primary" />
+                <span className="font-mono text-sm text-muted-foreground">{area.id}</span>
+                {isRenamingArea ? (
+                  <Input
+                    value={renameValue}
+                    onChange={e => setRenameValue(e.target.value)}
+                    onKeyDown={renameKeyDown}
+                    onBlur={saveRename}
+                    onClick={e => e.stopPropagation()}
+                    className="h-6 text-sm font-medium w-40"
+                    autoFocus
+                  />
+                ) : (
+                  <span className="font-medium text-sm">{area.name}</span>
+                )}
+              </button>
+              {!isRenamingArea && (
+                <button
+                  onClick={() => startRenameArea(area)}
+                  className="opacity-0 group-hover/area:opacity-100 p-2 mr-2 hover:text-foreground text-muted-foreground transition-opacity"
+                  title="Rename area"
+                >
+                  <Pencil className="h-4 w-4" />
+                </button>
+              )}
+            </div>
 
             {isExpanded && (
               <div className="border-t">
@@ -151,6 +218,7 @@ export function SystemTree({ system, onUpdateArea, onUpdateCategory, onAddCatego
                 {/* Categories */}
                 {area.categories.map(category => {
                   const isCatEditing = editingId === `cat-${area.id}-${category.id}`;
+                  const isRenamingCat = renamingId === `cat-${area.id}-${category.id}`;
 
                   return (
                     <div key={category.id} className="border-b last:border-b-0 group/category">
@@ -161,8 +229,29 @@ export function SystemTree({ system, onUpdateArea, onUpdateCategory, onAddCatego
                         >
                           <FileText className="h-4 w-4 text-muted-foreground" />
                           <span className="font-mono text-xs text-muted-foreground">{category.id}</span>
-                          <span className="text-sm">{category.name}</span>
+                          {isRenamingCat ? (
+                            <Input
+                              value={renameValue}
+                              onChange={e => setRenameValue(e.target.value)}
+                              onKeyDown={renameKeyDown}
+                              onBlur={saveRename}
+                              onClick={e => e.stopPropagation()}
+                              className="h-5 text-sm w-32"
+                              autoFocus
+                            />
+                          ) : (
+                            <span className="text-sm">{category.name}</span>
+                          )}
                         </button>
+                        {!isRenamingCat && (
+                          <button
+                            onClick={() => startRenameCategory(area.id, category)}
+                            className="opacity-0 group-hover/category:opacity-100 p-2 hover:text-foreground text-muted-foreground transition-opacity"
+                            title="Rename category"
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </button>
+                        )}
                         <button
                           onClick={() => onRemoveCategory(area.id, category.id)}
                           className="opacity-0 group-hover/category:opacity-100 p-2 mr-2 hover:text-destructive text-muted-foreground transition-opacity"

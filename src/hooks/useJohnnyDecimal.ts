@@ -53,7 +53,7 @@ export function useJohnnyDecimal() {
     });
   }, []);
 
-  const updateArea = useCallback((areaId: string, updates: Partial<Pick<Area, 'description' | 'tags'>>) => {
+  const updateArea = useCallback((areaId: string, updates: Partial<Pick<Area, 'name' | 'description' | 'tags'>>) => {
     setSystems(prev => prev.map((system, idx) => {
       if (idx !== activeSystemIndex) return system;
       return {
@@ -65,7 +65,7 @@ export function useJohnnyDecimal() {
     }));
   }, [activeSystemIndex]);
 
-  const updateCategory = useCallback((areaId: string, categoryId: string, updates: Partial<Pick<Category, 'description' | 'tags' | 'items'>>) => {
+  const updateCategory = useCallback((areaId: string, categoryId: string, updates: Partial<Pick<Category, 'name' | 'description' | 'tags' | 'items'>>) => {
     setSystems(prev => prev.map((system, idx) => {
       if (idx !== activeSystemIndex) return system;
       return {
