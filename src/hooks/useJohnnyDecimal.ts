@@ -98,6 +98,22 @@ export function useJohnnyDecimal() {
     }));
   }, [activeSystemIndex]);
 
+  const removeCategory = useCallback((areaId: string, categoryId: string) => {
+    setSystems(prev => prev.map((system, idx) => {
+      if (idx !== activeSystemIndex) return system;
+      return {
+        ...system,
+        areas: system.areas.map(area => {
+          if (area.id !== areaId) return area;
+          return {
+            ...area,
+            categories: area.categories.filter(cat => cat.id !== categoryId)
+          };
+        })
+      };
+    }));
+  }, [activeSystemIndex]);
+
   const addItem = useCallback((areaId: string, categoryId: string, item: Item) => {
     setSystems(prev => prev.map((system, idx) => {
       if (idx !== activeSystemIndex) return system;
@@ -194,6 +210,7 @@ export function useJohnnyDecimal() {
     updateArea,
     updateCategory,
     addCategory,
+    removeCategory,
     addItem,
     updateItem,
     removeItem,

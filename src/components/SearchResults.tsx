@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, forwardRef, useImperativeHandle } from 'react';
-import { ChevronRight, Folder, FileText } from 'lucide-react';
+import { ChevronRight, Folder, FileText, X } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { TagInput } from '@/components/TagInput';
 import { ItemList } from '@/components/ItemList';
@@ -14,6 +14,7 @@ interface SearchResultsProps {
   onUpdateArea: (areaId: string, updates: Partial<Pick<Area, 'description' | 'tags'>>) => void;
   onUpdateCategory: (areaId: string, categoryId: string, updates: Partial<Pick<Category, 'description' | 'tags'>>) => void;
   onAddCategory: (areaId: string, category: Category) => void;
+  onRemoveCategory: (areaId: string, categoryId: string) => void;
   onAddItem: (areaId: string, categoryId: string, item: Item) => void;
   onUpdateItem: (areaId: string, categoryId: string, itemId: string, updates: Partial<Item>) => void;
   onRemoveItem: (areaId: string, categoryId: string, itemId: string) => void;
@@ -128,6 +129,7 @@ export const SearchResults = forwardRef<SearchResultsRef, SearchResultsProps>(({
   onUpdateArea,
   onUpdateCategory,
   onAddCategory,
+  onRemoveCategory,
   onAddItem,
   onUpdateItem,
   onRemoveItem,
@@ -193,44 +195,55 @@ export const SearchResults = forwardRef<SearchResultsRef, SearchResultsProps>(({
         return (
           <div
             key={id}
-            className={`border rounded-lg overflow-hidden bg-card transition-colors ${isFocused ? 'ring-2 ring-primary' : ''}`}
+            className={`border rounded-lg overflow-hidden bg-card transition-colors group/result ${isFocused ? 'ring-2 ring-primary' : ''}`}
           >
-            <button
-              ref={el => itemRefs.current[idx] = el}
-              onClick={() => setExpandedId(isExpanded ? null : id)}
-              className="w-full px-4 py-3 flex items-center gap-3 text-left hover:bg-muted/50 transition-colors"
-            >
-              <ChevronRight className={`h-4 w-4 text-muted-foreground transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
+            <div className="flex items-center">
+              <button
+                ref={el => itemRefs.current[idx] = el}
+                onClick={() => setExpandedId(isExpanded ? null : id)}
+                className="flex-1 px-4 py-3 flex items-center gap-3 text-left hover:bg-muted/50 transition-colors"
+              >
+                <ChevronRight className={`h-4 w-4 text-muted-foreground transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
 
-              {result.type === 'area' ? (
-                <Folder className="h-4 w-4 text-primary" />
-              ) : (
-                <FileText className="h-4 w-4 text-muted-foreground" />
-              )}
-
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 text-sm">
-                  <span className="font-mono text-muted-foreground">
-                    {result.type === 'area' ? result.area.id : `${result.area.id} › ${result.category!.id}`}
-                  </span>
-                  <span className="font-medium truncate">
-                    <HighlightText
-                      text={result.type === 'area' ? result.area.name : result.category!.name}
-                      terms={result.matchedTerms}
-                    />
-                  </span>
-                </div>
-                {result.type === 'category' && (
-                  <div className="text-xs text-muted-foreground truncate">
-                    {result.area.name}
-                  </div>
+                {result.type === 'area' ? (
+                  <Folder className="h-4 w-4 text-primary" />
+                ) : (
+                  <FileText className="h-4 w-4 text-muted-foreground" />
                 )}
-              </div>
 
-              <span className="text-xs text-muted-foreground">
-                {result.score.toFixed(2)}
-              </span>
-            </button>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 text-sm">
+                    <span className="font-mono text-muted-foreground">
+                      {result.type === 'area' ? result.area.id : `${result.area.id} › ${result.category!.id}`}
+                    </span>
+                    <span className="font-medium truncate">
+                      <HighlightText
+                        text={result.type === 'area' ? result.area.name : result.category!.name}
+                        terms={result.matchedTerms}
+                      />
+                    </span>
+                  </div>
+                  {result.type === 'category' && (
+                    <div className="text-xs text-muted-foreground truncate">
+                      {result.area.name}
+                    </div>
+                  )}
+                </div>
+
+                <span className="text-xs text-muted-foreground">
+                  {result.score.toFixed(2)}
+                </span>
+              </button>
+              {result.type === 'category' && (
+                <button
+                  onClick={() => onRemoveCategory(result.area.id, result.category!.id)}
+                  className="opacity-0 group-hover/result:opacity-100 p-2 mr-2 hover:text-destructive text-muted-foreground transition-opacity"
+                  title="Delete category"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
 
             {isExpanded && (
               <div className="px-4 pb-4 pt-2 border-t bg-muted/30 space-y-3">
