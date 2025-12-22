@@ -82,7 +82,15 @@ Items use the format `prefix.categoryId.number` (e.g., `d1.22.03`). The system p
 
 ### Quick-Add Pattern
 
-Users can add items by typing `Name [XX]` in category descriptions. The regex `/^(.+?)\s*\[(\d+)\]$/` matches this pattern.
+Users can add categories or items by typing `Name [XX]` in area or category descriptions. The regex `/^(.+?)\s*\[(\d+)\]$/` matches this pattern.
+
+### Inline Rename
+
+Areas, categories, and items can be renamed inline by clicking the pencil icon. The rename state is managed locally in `SystemTree.tsx` and `SearchResults.tsx` using `renamingId` and `renameValue` state variables.
+
+### Deletion
+
+Categories and items can be deleted using the X button that appears on hover. The `removeCategory` function in `useJohnnyDecimal.ts` handles category deletion.
 
 ## Development Tips
 
@@ -102,8 +110,11 @@ When modifying keyboard handling:
 4. Test `↑`/`↓` navigate search results
 5. Test `Enter` expands results and focuses description
 6. Test `Esc` blurs fields and closes editors
-7. Test `Name [XX]` + Enter adds items in category descriptions
-8. Test `#tag` + Space adds tags in descriptions
+7. Test `Name [XX]` + Enter adds categories in area descriptions
+8. Test `Name [XX]` + Enter adds items in category descriptions
+9. Test `#tag` + Space adds tags in descriptions
+10. Test pencil icon triggers rename mode for areas, categories, and items
+11. Test X button deletes categories and items
 
 ## Questions?
 

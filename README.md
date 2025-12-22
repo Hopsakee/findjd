@@ -16,7 +16,9 @@ Johnny.Decimal is a system to organize your digital (and physical) life. It prov
 - **Hierarchical Organization**: Create and manage domains, areas, categories, and items
 - **Full-Text Search**: Quickly find anything using BM25-powered search
 - **Tag Support**: Add tags to categories and items for additional organization
-- **Quick Item Entry**: Type `Item Name [XX]` in descriptions to instantly add items
+- **Quick Entry**: Type `Name [XX]` in descriptions to instantly add categories or items
+- **Inline Rename**: Click the pencil icon to rename areas, categories, or items
+- **Easy Deletion**: Remove categories and items with the X button (hover to reveal)
 - **Keyboard-First Design**: Navigate and manage everything with keyboard shortcuts
 - **Import/Export**: Backup and restore your system as JSON files
 - **Offline Support**: Works offline as a PWA - install it on your device
@@ -87,11 +89,13 @@ The built files will be in the `dist` folder, ready to be deployed to any static
 1. **Import a System**: Start by importing your Johnny.Decimal structure as JSON
 2. **Search**: Use the search bar (`/`) to quickly find anything
 3. **Edit**: Click on areas or categories to edit descriptions, tags, and items
-4. **Add Categories**: In an area description, type `Name [XX]` + Enter
-5. **Add Items**: In a category description, type `Name [XX]` + Enter
-6. **Add Tags**: Type `#tagname` in descriptions and press Space
-7. **Switch Systems**: Press `1`-`9` to switch between systems alphabetically
-7. **Export**: Regularly export your data as a backup
+4. **Rename**: Click the pencil icon (✏️) on areas, categories, or items to rename
+5. **Delete**: Click the X button on categories or items to remove them
+6. **Add Categories**: In an area description, type `Name [XX]` + Enter
+7. **Add Items**: In a category description, type `Name [XX]` + Enter
+8. **Add Tags**: Type `#tagname` in descriptions and press Space
+9. **Switch Systems**: Press `1`-`9` to switch between systems alphabetically
+10. **Export**: Regularly export your data as a backup
 
 ## Technology Stack
 
