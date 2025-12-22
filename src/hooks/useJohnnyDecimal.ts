@@ -83,6 +83,21 @@ export function useJohnnyDecimal() {
     }));
   }, [activeSystemIndex]);
 
+  const addCategory = useCallback((areaId: string, category: Category) => {
+    setSystems(prev => prev.map((system, idx) => {
+      if (idx !== activeSystemIndex) return system;
+      return {
+        ...system,
+        areas: system.areas.map(area => {
+          if (area.id !== areaId) return area;
+          // Insert category in sorted order by ID
+          const categories = [...area.categories, category].sort((a, b) => a.id.localeCompare(b.id));
+          return { ...area, categories };
+        })
+      };
+    }));
+  }, [activeSystemIndex]);
+
   const addItem = useCallback((areaId: string, categoryId: string, item: Item) => {
     setSystems(prev => prev.map((system, idx) => {
       if (idx !== activeSystemIndex) return system;
@@ -178,6 +193,7 @@ export function useJohnnyDecimal() {
     loadSystem,
     updateArea,
     updateCategory,
+    addCategory,
     addItem,
     updateItem,
     removeItem,

@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import type { Item } from '@/types/johnnyDecimal';
+import type { Item, Category } from '@/types/johnnyDecimal';
 
 // Extract prefix from system name (e.g., "d1-Prive" → "d1")
 export function extractSystemPrefix(systemName: string): string {
@@ -61,24 +61,30 @@ export function useInputKeyboard(options: UseInputKeyboardOptions = {}) {
 interface UseDescriptionKeyboardOptions {
   onEscape?: () => void;
   onAddItem?: (item: Item) => void;
+  onAddCategory?: (category: Category) => void;
   onUpdateDescription?: (value: string) => void;
   onAddTag?: (tag: string, currentTags: string[]) => void;
   systemPrefix?: string;
   categoryId?: string;
+  areaId?: string;
   currentTags?: string[];
   isCategory?: boolean;
+  isArea?: boolean;
 }
 
 export function useDescriptionKeyboard(options: UseDescriptionKeyboardOptions = {}) {
   const {
     onEscape,
     onAddItem,
+    onAddCategory,
     onUpdateDescription,
     onAddTag,
     systemPrefix = '',
     categoryId = '',
+    areaId = '',
     currentTags = [],
     isCategory = false,
+    isArea = false,
   } = options;
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -96,21 +102,42 @@ export function useDescriptionKeyboard(options: UseDescriptionKeyboardOptions = 
       return;
     }
 
-    // Enter: check for item pattern "Name [XX]" on the current line (only for categories)
-    if (e.key === 'Enter' && isCategory && onAddItem && categoryId) {
+    // Enter: check for "Name [XX]" pattern on the current line
+    if (e.key === 'Enter') {
       const lastNewline = textBeforeCursor.lastIndexOf('\n');
       const currentLine = textBeforeCursor.substring(lastNewline + 1);
       const parsed = parseItemPattern(currentLine);
 
       if (parsed) {
-        e.preventDefault();
-        const fullId = buildItemId(systemPrefix, categoryId, parsed.number);
-        onAddItem({ id: fullId, name: parsed.name });
+        // For categories: create item
+        if (isCategory && onAddItem && categoryId) {
+          e.preventDefault();
+          const fullId = buildItemId(systemPrefix, categoryId, parsed.number);
+          onAddItem({ id: fullId, name: parsed.name });
 
-        // Remove the line from description
-        const newValue = value.substring(0, lastNewline + 1) + value.substring(cursorPos);
-        onUpdateDescription?.(newValue.replace(/\s+$/g, ''));
-        return;
+          // Remove the line from description
+          const newValue = value.substring(0, lastNewline + 1) + value.substring(cursorPos);
+          onUpdateDescription?.(newValue.replace(/\s+$/g, ''));
+          return;
+        }
+
+        // For areas: create category
+        if (isArea && onAddCategory && areaId) {
+          e.preventDefault();
+          const categoryIdNew = parsed.number.padStart(2, '0');
+          onAddCategory({
+            id: categoryIdNew,
+            name: parsed.name,
+            description: '',
+            tags: [],
+            items: [],
+          });
+
+          // Remove the line from description
+          const newValue = value.substring(0, lastNewline + 1) + value.substring(cursorPos);
+          onUpdateDescription?.(newValue.replace(/\s+$/g, ''));
+          return;
+        }
       }
     }
 
@@ -134,7 +161,7 @@ export function useDescriptionKeyboard(options: UseDescriptionKeyboardOptions = 
         return;
       }
     }
-  }, [onEscape, onAddItem, onUpdateDescription, onAddTag, systemPrefix, categoryId, currentTags, isCategory]);
+  }, [onEscape, onAddItem, onAddCategory, onUpdateDescription, onAddTag, systemPrefix, categoryId, areaId, currentTags, isCategory, isArea]);
 
   return { handleKeyDown };
 }

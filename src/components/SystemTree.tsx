@@ -10,6 +10,7 @@ interface SystemTreeProps {
   system: JohnnyDecimalSystem;
   onUpdateArea: (areaId: string, updates: Partial<Pick<Area, 'description' | 'tags'>>) => void;
   onUpdateCategory: (areaId: string, categoryId: string, updates: Partial<Pick<Category, 'description' | 'tags'>>) => void;
+  onAddCategory: (areaId: string, category: Category) => void;
   onAddItem: (areaId: string, categoryId: string, item: Item) => void;
   onUpdateItem: (areaId: string, categoryId: string, itemId: string, updates: Partial<Item>) => void;
   onRemoveItem: (areaId: string, categoryId: string, itemId: string) => void;
@@ -19,15 +20,20 @@ interface SystemTreeProps {
 function AreaDescriptionTextarea({
   area,
   onUpdateArea,
+  onAddCategory,
   onClose,
 }: {
   area: Area;
   onUpdateArea: (areaId: string, updates: Partial<Pick<Area, 'description' | 'tags'>>) => void;
+  onAddCategory: (areaId: string, category: Category) => void;
   onClose: () => void;
 }) {
   const { handleKeyDown } = useDescriptionKeyboard({
     onEscape: onClose,
-    isCategory: false,
+    onAddCategory: (category) => onAddCategory(area.id, category),
+    onUpdateDescription: (value) => onUpdateArea(area.id, { description: value }),
+    areaId: area.id,
+    isArea: true,
   });
 
   return (
@@ -35,7 +41,7 @@ function AreaDescriptionTextarea({
       value={area.description}
       onChange={e => onUpdateArea(area.id, { description: e.target.value })}
       onKeyDown={handleKeyDown}
-      placeholder="Area description..."
+      placeholder="Area description... (type 'Name [XX]' + Enter to add category)"
       className="min-h-[50px] text-sm"
     />
   );
@@ -79,7 +85,7 @@ function CategoryDescriptionTextarea({
   );
 }
 
-export function SystemTree({ system, onUpdateArea, onUpdateCategory, onAddItem, onUpdateItem, onRemoveItem }: SystemTreeProps) {
+export function SystemTree({ system, onUpdateArea, onUpdateCategory, onAddCategory, onAddItem, onUpdateItem, onRemoveItem }: SystemTreeProps) {
   const [expandedAreas, setExpandedAreas] = useState<Set<string>>(new Set());
   const [editingId, setEditingId] = useState<string | null>(null);
 
@@ -130,6 +136,7 @@ export function SystemTree({ system, onUpdateArea, onUpdateCategory, onAddItem, 
                       <AreaDescriptionTextarea
                         area={area}
                         onUpdateArea={onUpdateArea}
+                        onAddCategory={onAddCategory}
                         onClose={() => setEditingId(null)}
                       />
                       <TagInput

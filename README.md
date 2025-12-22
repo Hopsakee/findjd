@@ -39,7 +39,11 @@ Johnny.Decimal is a system to organize your digital (and physical) life. It prov
 | Input | Action |
 |-------|--------|
 | `#tag` + Space | Add a tag |
-| `Name [XX]` + Enter | Add an item (e.g., `Router [03]` → `d1.22.03`) |
+| `Name [XX]` + Enter | Add category (in area) or item (in category) |
+
+**Examples:**
+- In area "90-99": `Contracten [92]` → creates category "92 Contracten"
+- In category "22": `Router [03]` → creates item "d1.22.03"
 
 ## Installation (Without Lovable)
 
@@ -82,10 +86,11 @@ The built files will be in the `dist` folder, ready to be deployed to any static
 
 1. **Import a System**: Start by importing your Johnny.Decimal structure as JSON
 2. **Search**: Use the search bar (`/`) to quickly find anything
-3. **Edit**: Click on categories to edit descriptions, tags, and items
-4. **Add Items**: Use the quick-add input or type `Name [XX]` in descriptions
-5. **Add Tags**: Type `#tagname` in descriptions and press Space
-6. **Switch Systems**: Press `1`-`9` to switch between systems alphabetically
+3. **Edit**: Click on areas or categories to edit descriptions, tags, and items
+4. **Add Categories**: In an area description, type `Name [XX]` + Enter
+5. **Add Items**: In a category description, type `Name [XX]` + Enter
+6. **Add Tags**: Type `#tagname` in descriptions and press Space
+7. **Switch Systems**: Press `1`-`9` to switch between systems alphabetically
 7. **Export**: Regularly export your data as a backup
 
 ## Technology Stack
