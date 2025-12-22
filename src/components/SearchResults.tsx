@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef, useCallback, forwardRef, useImperativeHandle } from 'react';
-import { ChevronRight, Folder, FileText, X } from 'lucide-react';
+import { ChevronRight, Folder, FileText, X, Pencil } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
 import { TagInput } from '@/components/TagInput';
 import { ItemList } from '@/components/ItemList';
-import { useDescriptionKeyboard, useContainerNavigation, extractSystemPrefix } from '@/hooks/useKeyboardHandlers';
+import { useDescriptionKeyboard, useContainerNavigation, useInputKeyboard, extractSystemPrefix } from '@/hooks/useKeyboardHandlers';
 import type { SearchResult, Area, Category, Item } from '@/types/johnnyDecimal';
 
 interface SearchResultsProps {
@@ -11,8 +12,8 @@ interface SearchResultsProps {
   focusIndex: number;
   systemName?: string;
   onFocusChange: (index: number) => void;
-  onUpdateArea: (areaId: string, updates: Partial<Pick<Area, 'description' | 'tags'>>) => void;
-  onUpdateCategory: (areaId: string, categoryId: string, updates: Partial<Pick<Category, 'description' | 'tags'>>) => void;
+  onUpdateArea: (areaId: string, updates: Partial<Pick<Area, 'name' | 'description' | 'tags'>>) => void;
+  onUpdateCategory: (areaId: string, categoryId: string, updates: Partial<Pick<Category, 'name' | 'description' | 'tags'>>) => void;
   onAddCategory: (areaId: string, category: Category) => void;
   onRemoveCategory: (areaId: string, categoryId: string) => void;
   onAddItem: (areaId: string, categoryId: string, item: Item) => void;
@@ -135,9 +136,49 @@ export const SearchResults = forwardRef<SearchResultsRef, SearchResultsProps>(({
   onRemoveItem,
 }, ref) => {
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [renamingId, setRenamingId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState('');
   const containerRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const descriptionRefs = useRef<Map<string, HTMLTextAreaElement>>(new Map());
+
+  // Rename handlers
+  const startRename = (result: SearchResult) => {
+    const id = result.type === 'area' 
+      ? `area-${result.area.id}` 
+      : `cat-${result.area.id}-${result.category!.id}`;
+    setRenamingId(id);
+    setRenameValue(result.type === 'area' ? result.area.name : result.category!.name);
+  };
+
+  const saveRename = () => {
+    if (!renamingId || !renameValue.trim()) {
+      setRenamingId(null);
+      setRenameValue('');
+      return;
+    }
+    
+    if (renamingId.startsWith('area-')) {
+      const areaId = renamingId.replace('area-', '');
+      onUpdateArea(areaId, { name: renameValue.trim() });
+    } else if (renamingId.startsWith('cat-')) {
+      const parts = renamingId.split('-');
+      const areaId = parts[1];
+      const categoryId = parts.slice(2).join('-');
+      onUpdateCategory(areaId, categoryId, { name: renameValue.trim() });
+    }
+    
+    setRenamingId(null);
+    setRenameValue('');
+  };
+
+  const { handleKeyDown: renameKeyDown } = useInputKeyboard({
+    onSubmit: saveRename,
+    onCancel: () => {
+      setRenamingId(null);
+      setRenameValue('');
+    },
+  });
 
   useImperativeHandle(ref, () => ({
     focus: () => containerRef.current?.focus(),
@@ -191,6 +232,7 @@ export const SearchResults = forwardRef<SearchResultsRef, SearchResultsProps>(({
           : `cat-${result.area.id}-${result.category!.id}`;
         const isExpanded = expandedId === id;
         const isFocused = focusIndex === idx;
+        const isRenaming = renamingId === id;
 
         return (
           <div
@@ -216,12 +258,24 @@ export const SearchResults = forwardRef<SearchResultsRef, SearchResultsProps>(({
                     <span className="font-mono text-muted-foreground">
                       {result.type === 'area' ? result.area.id : `${result.area.id} › ${result.category!.id}`}
                     </span>
-                    <span className="font-medium truncate">
-                      <HighlightText
-                        text={result.type === 'area' ? result.area.name : result.category!.name}
-                        terms={result.matchedTerms}
+                    {isRenaming ? (
+                      <Input
+                        value={renameValue}
+                        onChange={e => setRenameValue(e.target.value)}
+                        onKeyDown={renameKeyDown}
+                        onBlur={saveRename}
+                        onClick={e => e.stopPropagation()}
+                        className="h-6 text-sm font-medium w-40"
+                        autoFocus
                       />
-                    </span>
+                    ) : (
+                      <span className="font-medium truncate">
+                        <HighlightText
+                          text={result.type === 'area' ? result.area.name : result.category!.name}
+                          terms={result.matchedTerms}
+                        />
+                      </span>
+                    )}
                   </div>
                   {result.type === 'category' && (
                     <div className="text-xs text-muted-foreground truncate">
@@ -234,6 +288,15 @@ export const SearchResults = forwardRef<SearchResultsRef, SearchResultsProps>(({
                   {result.score.toFixed(2)}
                 </span>
               </button>
+              {!isRenaming && (
+                <button
+                  onClick={() => startRename(result)}
+                  className="opacity-0 group-hover/result:opacity-100 p-2 hover:text-foreground text-muted-foreground transition-opacity"
+                  title={`Rename ${result.type}`}
+                >
+                  <Pencil className="h-4 w-4" />
+                </button>
+              )}
               {result.type === 'category' && (
                 <button
                   onClick={() => onRemoveCategory(result.area.id, result.category!.id)}
