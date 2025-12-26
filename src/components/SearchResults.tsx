@@ -348,6 +348,7 @@ export const SearchResults = forwardRef<SearchResultsRef, SearchResultsProps>(({
                       items={result.category!.items || []}
                       categoryId={result.category!.id}
                       systemPrefix={systemPrefix}
+                      matchedTerms={result.matchedTerms}
                       onAdd={item => onAddItem(result.area.id, result.category!.id, item)}
                       onUpdate={(itemId, updates) => onUpdateItem(result.area.id, result.category!.id, itemId, updates)}
                       onRemove={itemId => onRemoveItem(result.area.id, result.category!.id, itemId)}

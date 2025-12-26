@@ -5,16 +5,35 @@ import { Button } from '@/components/ui/button';
 import { useInputKeyboard, parseItemPattern, buildItemId } from '@/hooks/useKeyboardHandlers';
 import type { Item } from '@/types/johnnyDecimal';
 
+function HighlightText({ text, terms }: { text: string; terms: string[] }) {
+  if (terms.length === 0) return <>{text}</>;
+
+  const escapedTerms = terms.map(t => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+  const regex = new RegExp(`(${escapedTerms.join('|')})`, 'gi');
+  const parts = text.split(regex);
+
+  return (
+    <>
+      {parts.map((part, i) =>
+        terms.some(t => part.toLowerCase().includes(t.toLowerCase()))
+          ? <mark key={i} className="bg-primary/20 text-foreground rounded px-0.5">{part}</mark>
+          : part
+      )}
+    </>
+  );
+}
+
 interface ItemListProps {
   items: Item[];
   categoryId: string;
   systemPrefix?: string;
+  matchedTerms?: string[];
   onAdd: (item: Item) => void;
   onUpdate: (itemId: string, updates: Partial<Item>) => void;
   onRemove: (itemId: string) => void;
 }
 
-export function ItemList({ items, categoryId, systemPrefix = '', onAdd, onUpdate, onRemove }: ItemListProps) {
+export function ItemList({ items, categoryId, systemPrefix = '', matchedTerms = [], onAdd, onUpdate, onRemove }: ItemListProps) {
   const [isAdding, setIsAdding] = useState(false);
   const [newId, setNewId] = useState('');
   const [newName, setNewName] = useState('');
@@ -212,7 +231,7 @@ export function ItemList({ items, categoryId, systemPrefix = '', onAdd, onUpdate
                 </>
               ) : (
                 <>
-                  <span className="font-medium">{item.name}</span>
+                  <span className="font-medium"><HighlightText text={item.name} terms={matchedTerms} /></span>
                   <span className="font-mono text-muted-foreground">({item.id})</span>
                   <button
                     onClick={() => handleStartEdit(item)}
