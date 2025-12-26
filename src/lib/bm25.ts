@@ -7,21 +7,18 @@ function tokenize(text: string): string[] {
   return text.toLowerCase().split(/\s+/).filter(t => t.length > 0);
 }
 
-function getDocumentText(area: Area, category?: Category, item?: { id: string; name: string }): string {
-  if (item && category) {
-    return `${item.name} ${item.id} ${category.name} ${category.description} ${category.tags.join(' ')} ${area.name}`;
-  }
+function getDocumentText(area: Area, category?: Category): string {
   if (category) {
-    return `${category.name} ${category.description} ${category.tags.join(' ')} ${area.name} ${area.description} ${area.tags.join(' ')}`;
+    const itemNames = category.items?.map(i => `${i.name} ${i.id}`).join(' ') || '';
+    return `${category.name} ${category.description} ${category.tags.join(' ')} ${itemNames} ${area.name} ${area.description} ${area.tags.join(' ')}`;
   }
   return `${area.name} ${area.description} ${area.tags.join(' ')}`;
 }
 
 interface DocEntry {
-  type: 'area' | 'category' | 'item';
+  type: 'area' | 'category';
   areaId: string;
   categoryId?: string;
-  itemId?: string;
   text: string;
 }
 
@@ -42,16 +39,6 @@ function buildCorpus(system: JohnnyDecimalSystem): DocEntry[] {
         categoryId: category.id,
         text: getDocumentText(area, category)
       });
-
-      for (const item of category.items || []) {
-        entries.push({
-          type: 'item',
-          areaId: area.id,
-          categoryId: category.id,
-          itemId: item.id,
-          text: getDocumentText(area, category, item)
-        });
-      }
     }
   }
 
@@ -122,15 +109,11 @@ export function searchSystem(system: JohnnyDecimalSystem, query: string): Search
       const category = entry.categoryId 
         ? area.categories.find(c => c.id === entry.categoryId)
         : undefined;
-      const item = entry.itemId && category
-        ? category.items?.find(i => i.id === entry.itemId)
-        : undefined;
 
       scoredResults.push({
         type: entry.type,
         area,
         category,
-        item,
         score,
         matchedTerms
       });
