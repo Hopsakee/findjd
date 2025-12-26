@@ -25,9 +25,10 @@ export interface JohnnyDecimalSystem {
 }
 
 export interface SearchResult {
-  type: 'area' | 'category';
+  type: 'area' | 'category' | 'item';
   area: Area;
   category?: Category;
+  item?: Item;
   score: number;
   matchedTerms: string[];
 }
