@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { ChevronRight, Folder, FileText, X, Pencil } from 'lucide-react';
+import { ChevronRight, Folder, FileText, X, Pencil, Check } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import { TagInput } from '@/components/TagInput';
 import { ItemList } from '@/components/ItemList';
-import { useDescriptionKeyboard, extractSystemPrefix, useInputKeyboard } from '@/hooks/useKeyboardHandlers';
+import { useDescriptionKeyboard, extractSystemPrefix, useInputKeyboard, parseItemPattern } from '@/hooks/useKeyboardHandlers';
 import type { JohnnyDecimalSystem, Area, Category, Item } from '@/types/johnnyDecimal';
 
 interface SystemTreeProps {
@@ -46,6 +47,65 @@ function AreaDescriptionTextarea({
       placeholder="Area description... (type 'Name [XX]' + Enter to add category)"
       className="min-h-[50px] text-sm"
     />
+  );
+}
+
+// Component for quick-add category input
+function CategoryQuickAdd({
+  areaId,
+  onAddCategory,
+}: {
+  areaId: string;
+  onAddCategory: (areaId: string, category: Category) => void;
+}) {
+  const [quickAddValue, setQuickAddValue] = useState('');
+
+  const handleQuickAdd = () => {
+    const parsed = parseItemPattern(quickAddValue);
+    if (parsed) {
+      const categoryId = parsed.number.padStart(2, '0');
+      onAddCategory(areaId, {
+        id: categoryId,
+        name: parsed.name,
+        description: '',
+        tags: [],
+        items: [],
+      });
+      setQuickAddValue('');
+    }
+  };
+
+  const { handleKeyDown } = useInputKeyboard({
+    onSubmit: handleQuickAdd,
+    clearOnEscape: true,
+    setValue: setQuickAddValue,
+  });
+
+  return (
+    <div className="space-y-1">
+      <label className="text-xs font-medium text-muted-foreground">Add Category</label>
+      <div className="flex items-center gap-2">
+        <Input
+          value={quickAddValue}
+          onChange={e => setQuickAddValue(e.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder="Category name [XX]"
+          className="flex-1 h-7 text-xs"
+        />
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleQuickAdd}
+          className="h-7 w-7 p-0"
+          disabled={!parseItemPattern(quickAddValue)}
+        >
+          <Check className="h-3 w-3" />
+        </Button>
+      </div>
+      <p className="text-[10px] text-muted-foreground">
+        Format: Name [XX] → creates category XX
+      </p>
+    </div>
   );
 }
 
@@ -200,7 +260,7 @@ export function SystemTree({ system, onUpdateArea, onUpdateCategory, onAddCatego
                     {isEditing ? 'Close' : 'Edit area'}
                   </button>
                   {isEditing && (
-                    <div className="mt-2 space-y-2">
+                    <div className="mt-2 space-y-3">
                       <AreaDescriptionTextarea
                         area={area}
                         onUpdateArea={onUpdateArea}
@@ -211,6 +271,12 @@ export function SystemTree({ system, onUpdateArea, onUpdateCategory, onAddCatego
                         tags={area.tags}
                         onChange={tags => onUpdateArea(area.id, { tags })}
                       />
+                      <div className="pt-2 border-t">
+                        <CategoryQuickAdd
+                          areaId={area.id}
+                          onAddCategory={onAddCategory}
+                        />
+                      </div>
                     </div>
                   )}
                 </div>
